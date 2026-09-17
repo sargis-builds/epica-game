@@ -28,6 +28,7 @@
 html,body{
     width:100%;
     height:100%;
+    min-height:100dvh;
     margin:0;
     padding:0;
     overflow:hidden;
@@ -50,6 +51,7 @@ button{
     inset:0;
     width:100vw;
     height:100vh;
+    height:100dvh;
     align-items:center;
     justify-content:center;
     overflow:hidden;
@@ -458,12 +460,16 @@ button:disabled{
 
 #screen-battle.active-screen{
     display:flex;
+    animation:none;
 }
 
 .battle-arena-container{
     position:relative;
-    width:100%;
-    height:100%;
+    width:100vw;
+    height:100vh;
+    height:100dvh;
+    min-width:0;
+    min-height:0;
     overflow:hidden;
     background:#020408;
 }
@@ -472,6 +478,8 @@ canvas{
     display:block;
     width:100%;
     height:100%;
+    min-width:0;
+    min-height:0;
 }
 
 /* =========================================================
@@ -841,6 +849,14 @@ canvas{
 @media(orientation:portrait) and (max-width:600px){
     #screen-battle .battle-arena-container{min-height:100svh}
 }
+
+/* FINAL VIEWPORT + LANGUAGE CONTROL */
+#screen-battle, #screen-battle .battle-arena-container{max-width:100vw;max-height:100dvh}
+.language-switcher{position:fixed;top:12px;left:12px;z-index:9999;display:flex;gap:4px;padding:4px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(5,8,14,.92);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.language-switcher button{min-width:42px;padding:7px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:#cbd5e1;font-size:11px;font-weight:800;cursor:pointer}
+.language-switcher button.active{color:#020408;background:#fbbf24;border-color:#fde68a}
+@media(max-width:600px){.language-switcher{top:8px;left:8px}.language-switcher button{min-width:38px;padding:6px 7px;font-size:10px}}
+
 </style>
 </head>
 
@@ -1361,7 +1377,7 @@ let animationFrameId = null;
 
 // Responsive battle world. The original 1920px fixed world made the
 // battlefield too wide on some screens and tiny on phones.
-let battleWorldW = 1280;
+let battleWorldW = 1200;
 const battleWorldH = 700;
 let battleScale = 1;
 
@@ -1387,11 +1403,11 @@ function resizeCanvas(){
     }else if(aspect<1.25){
         battleWorldW=900;
     }else{
-        battleWorldW=1280;
+        battleWorldW=1200;
     }
 
-    players[0].castleX=battleWorldW*.14;
-    players[1].castleX=battleWorldW*.86;
+    players[0].castleX=battleWorldW*.16;
+    players[1].castleX=battleWorldW*.84;
 }
 window.addEventListener("resize",resizeCanvas);
 setTimeout(()=>{resizeCanvas();setLanguage("en");},0);
@@ -2053,17 +2069,13 @@ function launchProjectile(
 
     flyingProjectile={
 
-        startX:
-            shooter.castleX+
-            (shooter.id===0 ? 105 : -105),
+        startX:getCharacterX(shooter),
 
-        startY:455,
+        startY:470,
 
-        targetX:
-            target.castleX+
-            (shooter.id===0 ? -55 : 55),
+        targetX:getCharacterX(target),
 
-        targetY:455,
+        targetY:470,
 
         type:weapon.id,
 
@@ -2077,8 +2089,8 @@ function launchProjectile(
 
         speed:
             weapon.id==="fist"
-            ? .055
-            : .045,
+            ? .020
+            : .017,
 
         rotation:0
 
@@ -2117,7 +2129,7 @@ function useSuperAbility(){
        Lightning animation
     */
 
-    createLightningStrike(enemy.castleX);
+    createLightningStrike(getCharacterX(enemy));
 
     flashEffectTimer=18;
 
@@ -2332,8 +2344,8 @@ function handleHit(projectile){
     }
 
     createImpact(
-        target.castleX,
-        450,
+        getCharacterX(target),
+        470,
         projectile.type
     );
 
@@ -2396,7 +2408,7 @@ function switchTurn(){
 
             }
 
-        },750);
+        },1050);
 
     }
 
@@ -2431,7 +2443,7 @@ function botTurn(){
 
     let chosenWeapon;
 
-    if(config.aiType==="smart"){
+    if(config.aiType==="smart" || bot.weapons.length>1){
 
         /*
            Smart AI considers overkill.
@@ -3128,10 +3140,10 @@ function drawBattleBackground(time){
 
     const groundGlow=
         ctx.createRadialGradient(
-            960,
+            battleWorldW*.5,
             530,
             20,
-            960,
+            battleWorldW*.5,
             530,
             700
         );
@@ -3232,20 +3244,16 @@ function drawMountainLayer(
    BATTLEFIELD
 ========================================================= */
 
+function getCharacterX(player){
+    return player.id===0 ? player.castleX+145 : player.castleX-145;
+}
+function getCharacterY(){ return 540; }
+
 function drawBattlefield(time){
-
-    drawCastle(
-        players[0],
-        true,
-        time
-    );
-
-    drawCastle(
-        players[1],
-        false,
-        time
-    );
-
+    drawCastle(players[0],true,time);
+    drawCastle(players[1],false,time);
+    drawCharacter(players[0],true,time);
+    drawCharacter(players[1],false,time);
 }
 
 
@@ -3450,20 +3458,37 @@ function drawCastle(
         isHuman
     );
 
-
-    /*
-       Character
-    */
-
-    drawCharacter(
-        player,
-        isHuman,
-        time
-    );
+    drawCastleHealthBar(player,isHuman);
 
 
     ctx.restore();
 
+}
+
+
+function drawCastleHealthBar(player,isHuman){
+    const maxWidth=190;
+    const ratio=Math.max(0,Math.min(1,player.hp/player.maxHp));
+    const x=-95, y=-282;
+    ctx.save();
+    // Enemy castle is mirrored, so counter-flip the HUD text/bar.
+    ctx.scale(isHuman?1:-1,1);
+    ctx.fillStyle="rgba(2,6,12,.92)";
+    roundRect(x-5,y-8,maxWidth+10,39,10); ctx.fill();
+    ctx.textAlign="center";
+    ctx.font="800 14px Inter";
+    ctx.fillStyle="#f8fafc";
+    ctx.fillText(`${player.name}  •  ${Math.ceil(player.hp)} / ${player.maxHp}`,0,y+6);
+    ctx.fillStyle="#111827";
+    roundRect(x,y+11,maxWidth,11,5); ctx.fill();
+    if(ratio>0){
+        ctx.fillStyle=ratio>.5 ? (isHuman?"#22c55e":"#4ade80") : ratio>.25 ? "#f59e0b" : "#ef4444";
+        roundRect(x,y+11,Math.max(2,maxWidth*ratio),11,5); ctx.fill();
+    }
+    ctx.strokeStyle=isHuman?"rgba(96,165,250,.65)":"rgba(248,113,113,.65)";
+    ctx.lineWidth=1.5;
+    roundRect(x-1,y+10,maxWidth+2,13,6); ctx.stroke();
+    ctx.restore();
 }
 
 
@@ -3655,201 +3680,34 @@ function drawCharacter(
     isHuman,
     time
 ){
-
-    const attack=
-        player.attackAnim;
-
-    const bodyBob=
-        Math.sin(
-            time*.005+
-            player.id
-        )*2;
-
+    const x=getCharacterX(player);
+    const groundY=getCharacterY();
+    const attack=player.attackAnim;
+    const bob=Math.sin(time*.005+player.id)*2;
+    const facing=isHuman?1:-1;
     ctx.save();
-
-    ctx.translate(
-        -25,
-        -218+bodyBob
-    );
-
-
-    /*
-       Cape
-    */
-
-    ctx.fillStyle=
-        isHuman
-        ? "#1d4ed8"
-        : "#991b1b";
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        -18,
-        15
-    );
-
-    ctx.quadraticCurveTo(
-        -55,
-        40,
-        -45,
-        85
-    );
-
-    ctx.lineTo(
-        5,
-        65
-    );
-
-    ctx.closePath();
-
-    ctx.fill();
-
-
-    /*
-       Body armor
-    */
-
-    ctx.fillStyle=
-        isHuman
-        ? "#64748b"
-        : "#4b5563";
-
-    roundRect(
-        -18,
-        10,
-        38,
-        55,
-        10
-    );
-
-    ctx.fill();
-
-
-    /*
-       Armor plate
-    */
-
-    ctx.fillStyle=
-        isHuman
-        ? "#94a3b8"
-        : "#6b7280";
-
-    roundRect(
-        -8,
-        18,
-        18,
-        32,
-        5
-    );
-
-    ctx.fill();
-
-
-    /*
-       Head
-    */
-
-    ctx.fillStyle=
-        isHuman
-        ? "#f1c7a3"
-        : "#d1a78a";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        0,
-        0,
-        20,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-
-    /*
-       Helmet
-    */
-
-    ctx.fillStyle=
-        isHuman
-        ? "#475569"
-        : "#374151";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        0,
-        -4,
-        21,
-        Math.PI,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-
-    /*
-       Visor
-    */
-
-    ctx.fillStyle=
-        isHuman
-        ? "#1e293b"
-        : "#111827";
-
-    ctx.fillRect(
-        -19,
-        -3,
-        38,
-        7
-    );
-
-
-    /*
-       Arm / attack
-    */
-
-    ctx.strokeStyle=
-        isHuman
-        ? "#cbd5e1"
-        : "#9ca3af";
-
-    ctx.lineWidth=8;
-
-    ctx.lineCap="round";
-
-    const armAngle=
-        attack>0
-        ? -1.2
-        : -.4;
-
-    ctx.save();
-
-    ctx.rotate(
-        armAngle
-    );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        10,
-        30
-    );
-
-    ctx.lineTo(
-        42,
-        48
-    );
-
-    ctx.stroke();
-
+    ctx.translate(x,groundY+bob);
+    ctx.scale(facing*player.squashX,player.squashY);
+    ctx.fillStyle="rgba(0,0,0,.38)";
+    ctx.beginPath();ctx.ellipse(0,2,42,9,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=isHuman?"#1d4ed8":"#991b1b";
+    ctx.beginPath();ctx.moveTo(-18,-105);ctx.quadraticCurveTo(-58,-82,-42,-35);ctx.lineTo(5,-45);ctx.closePath();ctx.fill();
+    ctx.strokeStyle="#0f172a";ctx.lineWidth=10;ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(-10,-30);ctx.lineTo(-15,-2);ctx.moveTo(9,-30);ctx.lineTo(15,-2);ctx.stroke();
+    ctx.strokeStyle="#334155";ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-19,0);ctx.lineTo(-5,0);ctx.moveTo(5,0);ctx.lineTo(20,0);ctx.stroke();
+    const bodyGrad=ctx.createLinearGradient(-25,-85,25,-25);
+    bodyGrad.addColorStop(0,isHuman?"#e2e8f0":"#94a3b8");bodyGrad.addColorStop(.55,isHuman?"#64748b":"#475569");bodyGrad.addColorStop(1,"#1e293b");
+    ctx.fillStyle=bodyGrad;roundRect(-24,-83,48,58,12);ctx.fill();
+    ctx.fillStyle=isHuman?"#60a5fa":"#f87171";ctx.beginPath();ctx.moveTo(0,-72);ctx.lineTo(10,-62);ctx.lineTo(0,-48);ctx.lineTo(-10,-62);ctx.closePath();ctx.fill();
+    ctx.fillStyle="#c58f6a";roundRect(-8,-94,16,12,5);ctx.fill();
+    ctx.fillStyle=isHuman?"#e7b68e":"#c99673";ctx.beginPath();ctx.arc(0,-112,24,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=isHuman?"#475569":"#374151";ctx.beginPath();ctx.arc(0,-117,26,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(-25,-118,50,9);
+    ctx.fillStyle=isHuman?"#2563eb":"#dc2626";ctx.beginPath();ctx.moveTo(-4,-140);ctx.lineTo(8,-140);ctx.lineTo(2,-153);ctx.closePath();ctx.fill();
+    ctx.fillStyle="#020617";roundRect(-21,-119,42,7,3);ctx.fill();ctx.fillStyle=isHuman?"#93c5fd":"#fca5a5";ctx.fillRect(10,-117,5,2);
+    ctx.strokeStyle=isHuman?"#94a3b8":"#64748b";ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(-19,-67);ctx.lineTo(-34,-45);ctx.stroke();
+    ctx.save();ctx.translate(19,-67);ctx.rotate(attack>0?-0.95:-0.25);ctx.strokeStyle="#cbd5e1";ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(28,24);ctx.stroke();ctx.fillStyle="#e2e8f0";roundRect(22,17,18,16,5);ctx.fill();ctx.restore();
+    ctx.scale(facing,1);ctx.font="800 13px Inter";ctx.textAlign="center";ctx.fillStyle=isHuman?"#dbeafe":"#fee2e2";ctx.shadowBlur=8;ctx.shadowColor=isHuman?"#2563eb":"#dc2626";ctx.fillText(player.name,0,-162);
     ctx.restore();
-
-
-    ctx.restore();
-
 }
 
 
@@ -4148,7 +4006,7 @@ function drawProjectiles(){
         Math.sin(
             p.progress*Math.PI
         )*
-        270;
+        220;
 
     const y=
         p.startY-
@@ -4189,7 +4047,7 @@ function drawProjectiles(){
             p.type,
             tx,
             ty,
-            (p.type==="fist" ? 34 : 28)-i*2,
+            (p.type==="fist" ? 42 : 28)-i*2,
             p.rotation
         );
 
@@ -4201,7 +4059,7 @@ function drawProjectiles(){
         p.type,
         x,
         y,
-        (p.type==="fist" ? 62 : 48),
+        (p.type==="fist" ? 72 : 48),
         p.rotation
     );
 
@@ -4475,8 +4333,8 @@ function drawPopups(){
 
             ctx.fillText(
                 pop.text,
-                player.castleX,
-                300+
+                getCharacterX(player),
+                335+
                 pop.yOffset
             );
 
