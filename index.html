@@ -1,6 +1,6 @@
 ```html
 <!DOCTYPE html>
-<html lang="hy">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -809,66 +809,48 @@ canvas{
    RESPONSIVE
 ========================================================= */
 
-@media(max-width:800px){
+@media(max-width:900px){
+    .language-switcher{top:10px;left:10px}
     .box-container{
-        padding:25px 18px;
+        width:min(94%,760px);
+        max-height:94vh;
+        padding:24px 16px;
+        border-radius:20px;
     }
-
-    .levels-grid{
-        grid-template-columns:repeat(2,1fr);
-        max-height:52vh;
-        overflow:auto;
-    }
-
-    .shop-grid{
-        grid-template-columns:repeat(2,1fr);
-        max-height:55vh;
-        overflow:auto;
-    }
-
-    #hud-left-panel{
-        left:10px;
-        bottom:10px;
-        gap:7px;
-    }
-
-    .ground-weapons-tray{
-        gap:5px;
-        padding:7px;
-    }
-
-    .ground-weapon-card{
-        min-width:65px;
-        padding:8px 5px;
-    }
-
-    #super-ability-btn{
-        min-width:145px;
-        font-size:10px;
-        padding:8px;
-    }
-
-    #enemy-weapons-panel{
-        right:10px;
-        top:65px;
-        transform:scale(.85);
-        transform-origin:top right;
-    }
-
-    #turn-indicator{
-        top:10px;
-        padding:9px 18px;
-        font-size:11px;
-    }
-
-    .game-over-box{
-        padding:35px 20px;
-    }
+    .levels-grid{grid-template-columns:repeat(2,1fr);max-height:50vh;overflow:auto}
+    .shop-grid{grid-template-columns:repeat(2,1fr);max-height:54vh;overflow:auto}
+    #hud-left-panel{left:8px;right:8px;bottom:8px;gap:6px;max-width:none}
+    .ground-weapons-tray{gap:5px;padding:6px;overflow-x:auto;max-width:100%;scrollbar-width:none}
+    .ground-weapon-card{min-width:72px;padding:8px 6px}
+    #super-ability-btn{min-width:150px;max-width:48vw;font-size:10px;padding:8px}
+    #enemy-weapons-panel{right:8px;top:58px;min-width:145px;padding:9px 11px;font-size:10px}
+    #turn-indicator{top:10px;padding:8px 15px;font-size:10px;max-width:45vw;text-align:center}
+    .game-over-box{min-width:0;width:min(92%,480px);padding:30px 16px}
+}
+@media(max-width:600px){
+    .screen:not(#screen-battle){overflow:auto}
+    .box-container h2{font-size:clamp(21px,7vw,30px)}
+    .shop-grid{gap:9px}
+    .shop-item-card{min-height:145px;padding:14px 10px}
+    .weapon-icon{font-size:32px}
+    #enemy-weapons-panel{transform:none;max-width:42vw}
+    #hud-left-panel{align-items:flex-end;flex-direction:column-reverse}
+    #super-ability-btn{max-width:68vw;width:auto;align-self:flex-start}
+    .ground-weapons-tray{width:100%}
+}
+@media(orientation:portrait) and (max-width:600px){
+    #screen-battle .battle-arena-container{min-height:100svh}
 }
 </style>
 </head>
 
 <body>
+
+<div class="language-switcher" aria-label="Language">
+    <button id="lang-en" class="active" onclick="setLanguage('en')">EN</button>
+    <button id="lang-hy" onclick="setLanguage('hy')">ՀԱՅ</button>
+</div>
+
 
 <!-- =========================================================
      RULES SCREEN
@@ -880,35 +862,35 @@ canvas{
 
     <div class="box-container">
 
-        <h2>📜 ԽԱՂԻ ԿԱՆՈՆՆԵՐԸ</h2>
+        <h2 id="rules-title">📜 GAME RULES</h2>
 
         <p style="color:#94a3b8;font-size:13px;">
-            Բարի գալուստ <b style="color:#fbbf24;">Epica: Campaign Conquest</b>
+            Welcome to <b style="color:#fbbf24;">Epica: Campaign Conquest</b>
         </p>
 
         <div class="rules-list">
             <ul>
                 <li>
-                    ⚔️ <b>Հերթափոխով մարտ.</b>
-                    Ընտրեք զենքը ձեր զինանոցից և հարձակվեք հակառակորդի վրա։
+                    ⚔️ <b>Turn-based combat.</b>
+                    Choose a weapon from your arsenal and attack the opponent.
                 </li>
 
                 <li>
-                    🪙 <b>Ոսկի և զինանոց.</b>
-                    Յուրաքանչյուր մակարդակ ունի իր սկզբնական ոսկին։
-                    Խանութում կարող եք ձեռք բերել ավելի հզոր զենքեր։
+                    🪙 <b>Gold & Arsenal.</b>
+                    Each level has starting gold.
+                    Buy stronger weapons in the shop.
                 </li>
 
                 <li>
                     ⚠️ <span class="highlight-danger">OVERKILL.</span>
-                    Եթե հասցրած վնասը գերազանցում է հակառակորդի մնացած HP-ն,
-                    ավելորդ վնասը հետ է հարվածում ձեզ։
+                    If damage exceeds the opponent’s remaining HP,
+                    the excess damage hits you back.
                 </li>
 
                 <li>
-                    ⚡ <b>ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿ.</b>
-                    Բացվում է միայն 3-րդ մակարդակից։
-                    Այն լիցքավորվում է հերթերի ընթացքում։
+                    ⚡ <b>ENERGY LIGHTNING.</b>
+                    Unlocks from Level 3.
+                    It charges during turns.
                 </li>
             </ul>
         </div>
@@ -916,7 +898,7 @@ canvas{
         <button
             onclick="showScreen('screen-levels')"
             style="font-size:16px;padding:13px 42px;">
-            Հասկացա ➜
+            Got it ➜
         </button>
 
     </div>
@@ -933,10 +915,10 @@ canvas{
 
     <div class="box-container">
 
-        <h2>ԸՆՏՐԵՔ ՄԱԿԱՐԴԱԿԸ</h2>
+        <h2 id="levels-title">SELECT LEVEL</h2>
 
         <p style="color:#94a3b8;font-size:13px;">
-            Հաղթեք մարտերում՝ հաջորդ մակարդակը բացելու համար։
+            Win battles to unlock the next level.
         </p>
 
         <div class="levels-grid" id="levels-container"></div>
@@ -944,7 +926,7 @@ canvas{
         <button
             onclick="showScreen('screen-rules')"
             style="background:#334155;">
-            📖 Կանոններ
+            📖 Rules
         </button>
 
     </div>
@@ -961,7 +943,7 @@ canvas{
 
     <div class="box-container">
 
-        <h2 id="shop-level-title">ՄԱԿԱՐԴԱԿ 1</h2>
+        <h2 id="shop-level-title">LEVEL 1</h2>
 
         <div class="gold-display">
             🪙 <span id="player-gold">60</span>
@@ -979,13 +961,13 @@ canvas{
             <button
                 onclick="showScreen('screen-levels')"
                 style="background:#475569;">
-                ⬅️ Մակարդակներ
+                ⬅️ Levels
             </button>
 
             <button
                 onclick="startBattle()"
                 style="font-size:16px;padding:13px 40px;">
-                ⚔️ ՄԱՐՏԻ
+                ⚔️ BATTLE
             </button>
 
         </div>
@@ -1003,7 +985,7 @@ canvas{
     <div class="battle-arena-container">
 
         <div id="turn-indicator">
-            ✨ Ձեր հերթն է
+            ✨ YOUR TURN
         </div>
 
         <div id="enemy-weapons-panel">
@@ -1012,7 +994,7 @@ canvas{
                 font-weight:800;
                 margin-bottom:4px;
                 color:#ef4444;">
-                🎯 Թշնամու զինանոց
+                🎯 ENEMY ARSENAL
             </div>
 
             <div id="enemy-weapons-list"></div>
@@ -1046,7 +1028,7 @@ canvas{
                     flex-wrap:wrap;">
 
                     <button onclick="showScreen('screen-levels')">
-                        📜 Մակարդակներ
+                        📜 Levels
                     </button>
 
                     <button
@@ -1055,7 +1037,7 @@ canvas{
                         style="
                             background:linear-gradient(180deg,#d97706,#b45309);
                             display:none;">
-                        🔄 Կրկին փորձել
+                        🔄 Retry
                     </button>
 
                     <button
@@ -1064,7 +1046,7 @@ canvas{
                         style="
                             background:linear-gradient(180deg,#16a34a,#15803d);
                             display:none;">
-                        ⏩ Հաջորդ մակարդակը
+                        ⏩ Next Level
                     </button>
 
                 </div>
@@ -1084,24 +1066,20 @@ canvas{
 
                 <div class="tutorial-icon">⚡</div>
 
-                <h3>ԳԵՐՀԱՐՎԱԾԻ ԱԿՏԻՎԱՑՈՒՄ</h3>
+                <h3>SUPER ABILITY UNLOCKED</h3>
 
                 <p>
-                    Դու հասել ես <b>3-րդ մակարդակին</b>։
-                    Այստեղ առաջին անգամ հասանելի է
-                    <b style="color:#60a5fa;">ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿԸ</b>։
+                    You reached <b>Level 3</b>.<br>Here you unlock <b style="color:#60a5fa;">ENERGY LIGHTNING</b>.
                 </p>
 
                 <p>
-                    Այն հասցնում է <b>35 վնաս</b> և
-                    լիցքավորվում է յուրաքանչյուր վերադարձած
-                    խաղացողի հերթի ժամանակ։
+                    It deals <b>35 damage</b> and recharges after each of your turns.
                 </p>
 
                 <p style="
                     color:#93c5fd;
                     font-size:12px;">
-                    Սեղմիր «Հասկացա», և մարտը կսկսվի։
+                    Press “Got it” to start the battle.
                 </p>
 
                 <button
@@ -1110,7 +1088,7 @@ canvas{
                         background:linear-gradient(180deg,#2563eb,#1d4ed8);
                         border-color:#60a5fa;
                         margin-top:8px;">
-                    Հասկացա ➜
+                    Got it ➜
                 </button>
 
             </div>
@@ -1127,7 +1105,7 @@ canvas{
                     style="
                         left:-40px;
                         top:-25px;">
-                    ⚡ ՍՈՒՊԵՐ ԿԱՐՈՂՈՒԹՅՈՒՆ
+                    ⚡ SUPER ABILITY
                 </div>
 
             </div>
@@ -1148,7 +1126,7 @@ canvas{
             <button
                 id="super-ability-btn"
                 onclick="useSuperAbility()">
-                ⚡ ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿ
+                ⚡ ENERGY LIGHTNING
             </button>
 
         </div>
@@ -1166,13 +1144,13 @@ const levelConfigs = [
 
     {
         level:1,
-        name:"Սկսնակ Դաշտ",
+        name:"Starter Fields", hy:"Սկսնակ Դաշտ",
         unlocked:true,
         startGold:60,
         enemyHp:35,
         enemyWeapons:[
-            {id:"fist",name:"Բռունցք",damage:5,infinite:true},
-            {id:"rock",name:"Քար",damage:8}
+            {id:"fist",name:"Fist", hy:"Բռունցք",damage:5,infinite:true},
+            {id:"rock",name:"Rock", hy:"Քար",damage:8}
         ],
         aiType:"random",
         sky:["#020408","#1e1b4b"],
@@ -1181,14 +1159,14 @@ const levelConfigs = [
 
     {
         level:2,
-        name:"Մայրամուտի Ամրոց",
+        name:"Sunset Fortress", hy:"Մայրամուտի Ամրոց",
         unlocked:false,
         startGold:90,
         enemyHp:55,
         enemyWeapons:[
-            {id:"fist",name:"Բռունցք",damage:6,infinite:true},
-            {id:"rock",name:"Քար",damage:10},
-            {id:"sword",name:"Սուր",damage:15}
+            {id:"fist",name:"Fist", hy:"Բռունցք",damage:6,infinite:true},
+            {id:"rock",name:"Rock", hy:"Քար",damage:10},
+            {id:"sword",name:"Sword", hy:"Սուր",damage:15}
         ],
         aiType:"random",
         sky:["#2e1065","#7c2d12"],
@@ -1197,14 +1175,14 @@ const levelConfigs = [
 
     {
         level:3,
-        name:"Լուսնյակ Գիշեր",
+        name:"Moonlit Night", hy:"Լուսնյակ Գիշեր",
         unlocked:false,
         startGold:130,
         enemyHp:80,
         enemyWeapons:[
-            {id:"fist",name:"Բռունցք",damage:8,infinite:true},
-            {id:"sword",name:"Սուր",damage:16},
-            {id:"axe",name:"Կացին",damage:22}
+            {id:"fist",name:"Fist", hy:"Բռունցք",damage:8,infinite:true},
+            {id:"sword",name:"Sword", hy:"Սուր",damage:16},
+            {id:"axe",name:"Axe", hy:"Կացին",damage:22}
         ],
         aiType:"smart",
         sky:["#070b16","#172554"],
@@ -1213,14 +1191,14 @@ const levelConfigs = [
 
     {
         level:4,
-        name:"Անեծքի Գոտի",
+        name:"Cursed Lands", hy:"Անեծքի Գոտի",
         unlocked:false,
         startGold:170,
         enemyHp:110,
         enemyWeapons:[
-            {id:"fist",name:"Բռունցք",damage:10,infinite:true},
-            {id:"sword",name:"Սուր",damage:20},
-            {id:"axe",name:"Կացին",damage:28}
+            {id:"fist",name:"Fist", hy:"Բռունցք",damage:10,infinite:true},
+            {id:"sword",name:"Sword", hy:"Սուր",damage:20},
+            {id:"axe",name:"Axe", hy:"Կացին",damage:28}
         ],
         aiType:"smart",
         sky:["#450a0a","#78350f"],
@@ -1229,14 +1207,14 @@ const levelConfigs = [
 
     {
         level:5,
-        name:"Dark Lord-ի Գահը",
+        name:"Dark Lord’s Throne", hy:"Dark Lord-ի Գահը",
         unlocked:false,
         startGold:220,
         enemyHp:150,
         enemyWeapons:[
-            {id:"fist",name:"Բռունցք",damage:12,infinite:true},
-            {id:"sword",name:"Էլիտար Սուր",damage:25},
-            {id:"axe",name:"Տիտան Կացին",damage:35}
+            {id:"fist",name:"Fist", hy:"Բռունցք",damage:12,infinite:true},
+            {id:"sword",name:"Elite Sword", hy:"Էլիտար Սուր",damage:25},
+            {id:"axe",name:"Titan Axe", hy:"Տիտան Կացին",damage:35}
         ],
         aiType:"smart",
         sky:["#000000","#312e81"],
@@ -1254,7 +1232,7 @@ const shopWeapons = [
 
     {
         id:"fist",
-        name:"Բռունցք",
+        name:"Fist", hy:"Բռունցք",
         price:0,
         damage:5,
         infinite:true,
@@ -1263,7 +1241,7 @@ const shopWeapons = [
 
     {
         id:"rock",
-        name:"Էպիկական Քար",
+        name:"Epic Rock", hy:"Էպիկական Քար",
         price:15,
         damage:9,
         infinite:false,
@@ -1272,7 +1250,7 @@ const shopWeapons = [
 
     {
         id:"sword",
-        name:"Ասպետական Սուր",
+        name:"Knight Sword", hy:"Ասպետական Սուր",
         price:30,
         damage:15,
         infinite:false,
@@ -1281,7 +1259,7 @@ const shopWeapons = [
 
     {
         id:"axe",
-        name:"Մարտական Կացին",
+        name:"Battle Axe", hy:"Մարտական Կացին",
         price:50,
         damage:24,
         infinite:false,
@@ -1339,12 +1317,12 @@ const players = [
 
     {
         id:0,
-        name:"Էպիկական Հերոս",
+        name:"Epic Hero",
         hp:100,
         maxHp:100,
         gold:50,
         weapons:[],
-        castleX:250,
+        castleX:150,
         squashX:1,
         squashY:1,
         hitPopups:[],
@@ -1354,11 +1332,11 @@ const players = [
 
     {
         id:1,
-        name:"Թշնամի",
+        name:"Enemy",
         hp:100,
         maxHp:100,
         weapons:[],
-        castleX:1670,
+        castleX:1130,
         squashX:1,
         squashY:1,
         hitPopups:[],
@@ -1381,38 +1359,166 @@ let gameLoopRunning = false;
 
 let animationFrameId = null;
 
+// Responsive battle world. The original 1920px fixed world made the
+// battlefield too wide on some screens and tiny on phones.
+let battleWorldW = 1280;
+const battleWorldH = 700;
+let battleScale = 1;
+
+
 
 /* =========================================================
    CANVAS RESIZE
 ========================================================= */
 
 function resizeCanvas(){
+    const rect=canvas.getBoundingClientRect();
+    const dpr=Math.min(window.devicePixelRatio||1,2);
 
-    const rect = canvas.getBoundingClientRect();
+    canvas.width=Math.max(1,Math.floor(rect.width*dpr));
+    canvas.height=Math.max(1,Math.floor(rect.height*dpr));
 
-    const dpr = Math.min(window.devicePixelRatio || 1,2);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
 
-    canvas.width = Math.floor(rect.width * dpr);
+    // Keep both fighters on screen while preserving a usable scale.
+    const aspect=rect.width/Math.max(1,rect.height);
+    if(aspect<0.9){
+        battleWorldW=760;
+    }else if(aspect<1.25){
+        battleWorldW=900;
+    }else{
+        battleWorldW=1280;
+    }
 
-    canvas.height = Math.floor(rect.height * dpr);
-
-    ctx.setTransform(
-        dpr,
-        0,
-        0,
-        dpr,
-        0,
-        0
-    );
-
+    players[0].castleX=battleWorldW*.14;
+    players[1].castleX=battleWorldW*.86;
 }
-
 window.addEventListener("resize",resizeCanvas);
+setTimeout(()=>{resizeCanvas();setLanguage("en");},0);
 
 
 /* =========================================================
    SCREEN MANAGEMENT
 ========================================================= */
+
+
+/* =========================================================
+   LANGUAGE SYSTEM
+========================================================= */
+let currentLanguage="en";
+
+const UI_TEXT={
+    en:{
+        rulesTitle:"📜 GAME RULES",
+        welcome:"Welcome to <b style=\"color:#fbbf24;\">Epica: Campaign Conquest</b>",
+        rule1:"⚔️ <b>Turn-based combat.</b> Choose a weapon from your arsenal and attack the opponent.",
+        rule2:"🪙 <b>Gold & Arsenal.</b> Each level has starting gold. Buy stronger weapons in the shop.",
+        rule3:"⚠️ <span class=\"highlight-danger\">OVERKILL.</span> If damage exceeds the opponent’s remaining HP, the excess damage hits you back.",
+        rule4:"⚡ <b>ENERGY LIGHTNING.</b> Unlocks from Level 3. It charges during turns.",
+        gotIt:"Got it ➜",
+        levelsTitle:"SELECT LEVEL",
+        levelsHint:"Win battles to unlock the next level.",
+        rules:"📖 Rules",
+        levels:"📜 Levels",
+        battle:"⚔️ BATTLE",
+        enemyArsenal:"🎯 ENEMY ARSENAL",
+        superTitle:"SUPER ABILITY UNLOCKED",
+        tutorial:"You reached <b>Level 3</b>.<br>Here you unlock <b style=\"color:#60a5fa;\">ENERGY LIGHTNING</b>.",
+        tutorial2:"It deals <b>35 damage</b> and recharges after each of your turns.",
+        tutorialHint:"Press “Got it” to start the battle.",
+        superLabel:"⚡ SUPER ABILITY",
+        retry:"🔄 Retry",
+        next:"⏩ Next Level",
+        yourTurn:"✨ YOUR TURN",
+        enemyTurn:"⚔️ OPPONENT’S TURN...",
+        charge:"⏳ Charging",
+        damage:"⚔️ Damage:",
+        infinite:"INFINITE",
+        buy:"Buy",
+        standard:"Standard",
+        open:"🔓 OPEN",
+        locked:"🔒 LOCKED",
+        levelComplete:"LEVEL COMPLETE!",
+        defeat:"DEFEAT",
+        bothDefeated:"BOTH DEFEATED (OVERKILL)!",
+        backlash:"BACKLASH"
+    },
+    hy:{
+        rulesTitle:"📜 ԽԱՂԻ ԿԱՆՈՆՆԵՐԸ",
+        welcome:"Բարի գալուստ <b style=\"color:#fbbf24;\">Epica: Campaign Conquest</b>",
+        rule1:"⚔️ <b>Հերթափոխով մարտ.</b> Ընտրեք զենքը ձեր զինանոցից և հարձակվեք հակառակորդի վրա։",
+        rule2:"🪙 <b>Ոսկի և զինանոց.</b> Յուրաքանչյուր մակարդակ ունի իր սկզբնական ոսկին։ Խանութում կարող եք ձեռք բերել ավելի հզոր զենքեր։",
+        rule3:"⚠️ <span class=\"highlight-danger\">OVERKILL.</span> Եթե հասցրած վնասը գերազանցում է հակառակորդի մնացած HP-ն, ավելորդ վնասը հետ է հարվածում ձեզ։",
+        rule4:"⚡ <b>ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿ.</b> Բացվում է միայն 3-րդ մակարդակից։ Այն լիցքավորվում է հերթերի ընթացքում։",
+        gotIt:"Հասկացա ➜",
+        levelsTitle:"ԸՆՏՐԵՔ ՄԱԿԱՐԴԱԿԸ",
+        levelsHint:"Հաղթեք մարտերում՝ հաջորդ մակարդակը բացելու համար։",
+        rules:"📖 Կանոններ",
+        levels:"📜 Մակարդակներ",
+        battle:"⚔️ ՄԱՐՏԻ",
+        enemyArsenal:"🎯 Թշնամու զինանոց",
+        superTitle:"ԳԵՐՀԱՐՎԱԾԻ ԱԿՏԻՎԱՑՈՒՄ",
+        tutorial:"Դու հասել ես <b>3-րդ մակարդակին</b>։<br>Այստեղ առաջին անգամ հասանելի է <b style=\"color:#60a5fa;\">ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿԸ</b>։",
+        tutorial2:"Այն հասցնում է <b>35 վնաս</b> և լիցքավորվում է յուրաքանչյուր վերադարձած խաղացողի հերթի ժամանակ։",
+        tutorialHint:"Սեղմիր «Հասկացա», և մարտը կսկսվի։",
+        superLabel:"⚡ ՍՈՒՊԵՐ ԿԱՐՈՂՈՒԹՅՈՒՆ",
+        retry:"🔄 Կրկին փորձել",
+        next:"⏩ Հաջորդ մակարդակը",
+        yourTurn:"✨ ՁԵՐ ՀԵՐԹՆ Է",
+        enemyTurn:"⚔️ ՀԱԿԱՌԱԿՈՐԴԻ ՀԵՐԹՆ Է...",
+        charge:"⏳ Լիցքավորում",
+        damage:"⚔️ Վնաս:",
+        infinite:"ԱՆՍԱՀՄԱՆ",
+        buy:"Գնել",
+        standard:"Ստանդարտ",
+        open:"🔓 ԲԱՑ Է",
+        locked:"🔒 ՓԱԿ Է",
+        levelComplete:"ՄԱԿԱՐԴԱԿՆ ԱՆՑՎԱԾ Է!",
+        defeat:"ՊԱՐՏՈՒԹՅՈՒՆ",
+        bothDefeated:"ԵՐԿՈՒՍԴ ԷԼ ՊԱՐՏՎԵՑԻՔ (OVERKILL)!",
+        backlash:"ՀԵՏՀԱՐՎԱԾ"
+    }
+};
+
+function t(key){ return UI_TEXT[currentLanguage][key] || UI_TEXT.en[key] || key; }
+
+function setLanguage(lang){
+    currentLanguage=lang==="hy"?"hy":"en";
+    document.documentElement.lang=currentLanguage;
+    document.getElementById("lang-en").classList.toggle("active",currentLanguage==="en");
+    document.getElementById("lang-hy").classList.toggle("active",currentLanguage==="hy");
+
+    document.getElementById("rules-title").innerText=t("rulesTitle");
+    document.querySelector("#screen-rules .box-container p").innerHTML=t("welcome");
+    const rules=document.querySelectorAll("#screen-rules .rules-list li");
+    if(rules[0]) rules[0].innerHTML=t("rule1");
+    if(rules[1]) rules[1].innerHTML=t("rule2");
+    if(rules[2]) rules[2].innerHTML=t("rule3");
+    if(rules[3]) rules[3].innerHTML=t("rule4");
+    document.querySelector("#screen-rules button").innerText=t("gotIt");
+    document.getElementById("levels-title").innerText=t("levelsTitle");
+    document.querySelector("#screen-levels .box-container p").innerText=t("levelsHint");
+    document.querySelector("#screen-levels button").innerText=t("rules");
+    document.querySelector("#screen-shop button[onclick*='screen-levels']").innerText=t("levels");
+    document.querySelector("#screen-shop button[onclick='startBattle()']").innerText=t("battle");
+    document.querySelector("#enemy-weapons-panel div").innerText=t("enemyArsenal");
+    document.querySelector("#tutorial-overlay h3").innerText=t("superTitle");
+    document.querySelector("#tutorial-overlay .tutorial-box p:nth-of-type(1)").innerHTML=t("tutorial");
+    document.querySelector("#tutorial-overlay .tutorial-box p:nth-of-type(2)").innerHTML=t("tutorial2");
+    document.querySelector("#tutorial-overlay .tutorial-box p:nth-of-type(3)").innerText=t("tutorialHint");
+    document.querySelector("#tutorial-overlay button").innerText=t("gotIt");
+    document.querySelector("#tutorial-arrow .tutorial-label").innerText=t("superLabel");
+    document.getElementById("retry-level-btn").innerText=t("retry");
+    document.getElementById("next-level-btn").innerText=t("next");
+
+    renderLevelsUI();
+    updateShopUI();
+    updateHUD();
+}
+
+function weaponLabel(w){ return currentLanguage==="hy" ? (w.hy || w.name) : w.name; }
+function levelLabel(lvl){ return currentLanguage==="hy" ? (lvl.hy || lvl.name) : lvl.name; }
+
 
 function showScreen(screenId){
 
@@ -1471,14 +1577,14 @@ function renderLevelsUI(){
             </div>
 
             <div class="level-name">
-                ${lvl.name}
+                ${levelLabel(lvl)}
             </div>
 
             <div class="level-subtitle">
                 ${
                     lvl.unlocked
-                    ? "🔓 ԲԱՑ Է"
-                    : "🔒 ՓԱԿ Է"
+                    ? t("open")
+                    : t("locked")
                 }
             </div>
 
@@ -1524,7 +1630,7 @@ function selectLevel(idx){
     ];
 
     players[1].name=
-        `Թշնամի • LEVEL ${config.level}`;
+        `Enemy • LEVEL ${config.level}`;
 
     players[1].hp=config.enemyHp;
 
@@ -1541,7 +1647,7 @@ function selectLevel(idx){
     document.getElementById(
         "shop-level-title"
     ).innerText=
-        `ՄԱԿԱՐԴԱԿ ${config.level}: ${config.name}`;
+        `${currentLanguage==="hy"?"ՄԱԿԱՐԴԱԿ":"LEVEL"} ${config.level}: ${levelLabel(config)}`;
 
     showScreen("screen-shop");
 
@@ -1626,7 +1732,7 @@ function updateShopUI(){
 
         const priceText=
             w.infinite
-            ? "ԱՆՍԱՀՄԱՆ"
+            ? t("infinite")
             : `${w.price} 🪙`;
 
         card.innerHTML=`
@@ -1638,11 +1744,11 @@ function updateShopUI(){
                 </div>
 
                 <div class="shop-name">
-                    ${w.name}
+                    ${weaponLabel(w)}
                 </div>
 
                 <div class="shop-damage">
-                    ⚔️ Վնաս: ${w.damage}
+                    ${t("damage")} ${w.damage}
                 </div>
 
             </div>
@@ -1666,7 +1772,7 @@ function updateShopUI(){
                         ? "disabled"
                         : ""
                     }>
-                    ${w.infinite ? "Ստանդարտ" : "Գնել"}
+                    ${w.infinite ? t("standard") : t("buy")}
                 </button>
 
             </div>
@@ -2041,7 +2147,7 @@ function useSuperAbility(){
         });
 
         players[0].hitPopups.push({
-            text:`⚠️ Հետհարված -${excess}`,
+            text:`⚠️ ${t("backlash")} -${excess}`,
             alpha:1,
             yOffset:-30
         });
@@ -2215,7 +2321,7 @@ function handleHit(projectile){
 
         shooter.hitPopups.push({
 
-            text:`⚠️ ՀԵՏՀԱՐՎԱԾ -${excessDamage}`,
+            text:`⚠️ ${t("backlash")} -${excessDamage}`,
 
             alpha:1,
 
@@ -2411,10 +2517,7 @@ function checkGameOver(){
 
         retryBtn.style.display="inline-block";
 
-        showGameOver(
-            "💀",
-            "ԵՐԿՈՒՍԴ ԷԼ ՊԱՐՏՎԵՑԻՔ (OVERKILL)!"
-        );
+        showGameOver("💀",t("bothDefeated"));
 
         return;
 
@@ -2444,10 +2547,7 @@ function checkGameOver(){
 
         }
 
-        showGameOver(
-            "🏆",
-            "ՄԱԿԱՐԴԱԿՆ ԱՆՑՎԱԾ Է!"
-        );
+        showGameOver("🏆",t("levelComplete"));
 
         return;
 
@@ -2461,10 +2561,7 @@ function checkGameOver(){
 
         retryBtn.style.display="inline-block";
 
-        showGameOver(
-            "💀",
-            "ՊԱՐՏՈՒԹՅՈՒՆ"
-        );
+        showGameOver("💀",t("defeat"));
 
     }
 
@@ -2578,14 +2675,14 @@ function updateHUD(){
                     font-size:12px;
                     font-weight:800;">
                     ${weapon.icon || "⚔️"}
-                    ${weapon.name}
+                    ${weaponLabel(weapon)}
                 </div>
 
                 <div style="
                     color:#94a3b8;
                     font-size:10px;
                     margin-top:3px;">
-                    ⚔️ ${weapon.damage}
+                    ${t("damage")} ${weapon.damage}
                 </div>
 
             `;
@@ -2625,7 +2722,7 @@ function updateHUD(){
         ? players[1].weapons
             .map(
                 w=>
-                    `• ${w.name}
+                    `• ${weaponLabel(w)}
                     (${w.damage})`
             )
             .join("<br>")
@@ -2650,8 +2747,8 @@ function updateHUD(){
 
         indicator.innerText=
             currentTurn===0
-            ? "✨ ՁԵՐ ՀԵՐԹՆ Է"
-            : "⚔️ ՀԱԿԱՌԱԿՈՐԴԻ ՀԵՐԹՆ Է...";
+            ? t("yourTurn")
+            : t("enemyTurn");
 
     }
 
@@ -2682,7 +2779,7 @@ function updateHUD(){
         if(ready){
 
             superBtn.innerText=
-                "⚡ ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿ • 100%";
+                "⚡ ENERGY LIGHTNING • 100%";
 
             superBtn.disabled=
                 currentTurn!==0 ||
@@ -2701,7 +2798,7 @@ function updateHUD(){
                 );
 
             superBtn.innerText=
-                `⏳ Լիցքավորում • ${percent}%`;
+                `${t("charge")} • ${percent}%`;
 
             superBtn.disabled=true;
 
@@ -2786,34 +2883,20 @@ function gameLoop(time){
         height
     );
 
-    /*
-       World coordinate system:
-       designed around 1920 x 700
-    */
+    // Fit the entire battlefield into the viewport. On narrow screens
+    // the virtual world is intentionally narrower so both fighters stay visible.
+    const scale=Math.min(
+        width/battleWorldW,
+        height/battleWorldH
+    );
 
-    const scale=
-        Math.min(
-            width/1920,
-            height/700
-        );
-
-    const offsetX=
-        (width-1920*scale)/2;
-
-    const offsetY=
-        (height-700*scale)/2;
+    const offsetX=(width-battleWorldW*scale)/2;
+    const offsetY=(height-battleWorldH*scale)/2;
+    battleScale=scale;
 
     ctx.save();
-
-    ctx.translate(
-        offsetX,
-        offsetY
-    );
-
-    ctx.scale(
-        scale,
-        scale
-    );
+    ctx.translate(offsetX,offsetY);
+    ctx.scale(scale,scale);
 
     drawBattleBackground(
         time
@@ -2874,7 +2957,7 @@ function drawBattleBackground(time){
     ctx.fillRect(
         0,
         0,
-        1920,
+        battleWorldW,
         540
     );
 
@@ -2888,7 +2971,7 @@ function drawBattleBackground(time){
     ctx.globalAlpha=.75;
 
     const celestialX=
-        960+
+        battleWorldW*.5+
         Math.sin(time*.00008)*180;
 
     const celestialY=
@@ -2959,7 +3042,7 @@ function drawBattleBackground(time){
         for(let i=0;i<65;i++){
 
             const x=
-                (i*137)%1920;
+                (i*137)%battleWorldW;
 
             const y=
                 (i*71)%360;
@@ -3034,7 +3117,7 @@ function drawBattleBackground(time){
     ctx.fillRect(
         0,
         540,
-        1920,
+        battleWorldW,
         160
     );
 
@@ -3068,7 +3151,7 @@ function drawBattleBackground(time){
     ctx.fillRect(
         0,
         430,
-        1920,
+        battleWorldW,
         270
     );
 
@@ -3087,7 +3170,7 @@ function drawBattleBackground(time){
 
         ctx.moveTo(0,y);
 
-        ctx.lineTo(1920,y);
+        ctx.lineTo(battleWorldW,y);
 
         ctx.stroke();
 
@@ -3117,7 +3200,7 @@ function drawMountainLayer(
 
     for(
         let x=-200;
-        x<=2120;
+        x<=battleWorldW+200;
         x+=140
     ){
 
@@ -3136,7 +3219,7 @@ function drawMountainLayer(
 
     }
 
-    ctx.lineTo(2120,540);
+    ctx.lineTo(battleWorldW+200,540);
 
     ctx.closePath();
 
@@ -3809,39 +3892,60 @@ function drawWeapon(
 
 
     if(type==="fist"){
+        // Stylized armored gauntlet: clearly reads as a fist instead of a projectile blob.
+        ctx.shadowBlur=18;
+        ctx.shadowColor="#fb7185";
 
-        ctx.fillStyle="#fca5a5";
-
-        ctx.beginPath();
-
-        ctx.arc(
-            0,
-            0,
-            size*.36,
-            0,
-            Math.PI*2
-        );
-
+        // Wrist / cuff
+        ctx.fillStyle="#334155";
+        roundRect(-size*.18,size*.18,size*.36,size*.38,size*.07);
         ctx.fill();
 
-        ctx.fillStyle="#fb7185";
+        // Palm
+        const palmGrad=ctx.createLinearGradient(-size*.45,-size*.35,size*.45,size*.45);
+        palmGrad.addColorStop(0,"#f8fafc");
+        palmGrad.addColorStop(.35,"#cbd5e1");
+        palmGrad.addColorStop(1,"#64748b");
+        ctx.fillStyle=palmGrad;
+        roundRect(-size*.40,-size*.20,size*.72,size*.55,size*.13);
+        ctx.fill();
 
+        // Four armored knuckles
+        ctx.fillStyle="#e2e8f0";
         for(let i=0;i<4;i++){
-
-            ctx.beginPath();
-
-            ctx.arc(
-                -size*.2+i*size*.13,
-                -size*.18,
-                size*.09,
-                0,
-                Math.PI*2
+            roundRect(
+                -size*.38+i*size*.19,
+                -size*.42,
+                size*.16,
+                size*.27,
+                size*.055
             );
-
             ctx.fill();
-
         }
 
+        // Palm plate
+        ctx.fillStyle="#94a3b8";
+        roundRect(-size*.24,-size*.08,size*.38,size*.20,size*.05);
+        ctx.fill();
+
+        ctx.strokeStyle="#f43f5e";
+        ctx.lineWidth=Math.max(2,size*.045);
+        ctx.beginPath();
+        ctx.moveTo(-size*.30,size*.12);
+        ctx.lineTo(size*.12,size*.12);
+        ctx.stroke();
+
+        // Impact streaks make the fist feel powerful in flight.
+        ctx.globalAlpha=.7;
+        ctx.strokeStyle="#fb7185";
+        ctx.lineWidth=Math.max(2,size*.035);
+        for(let i=0;i<3;i++){
+            ctx.beginPath();
+            ctx.moveTo(-size*(.55+i*.12),-size*(.18-i*.10));
+            ctx.lineTo(-size*(.92+i*.12),-size*(.18-i*.10));
+            ctx.stroke();
+        }
+        ctx.globalAlpha=1;
     }
 
 
@@ -4085,7 +4189,7 @@ function drawProjectiles(){
             p.type,
             tx,
             ty,
-            24-i*2,
+            (p.type==="fist" ? 34 : 28)-i*2,
             p.rotation
         );
 
@@ -4097,7 +4201,7 @@ function drawProjectiles(){
         p.type,
         x,
         y,
-        42,
+        (p.type==="fist" ? 62 : 48),
         p.rotation
     );
 
@@ -4232,6 +4336,10 @@ function drawEffects(){
             ctx.strokeStyle=
                 e.weapon==="sword"
                 ? "#bfdbfe"
+                : e.weapon==="fist"
+                ? "#fb7185"
+                : e.weapon==="axe"
+                ? "#ef4444"
                 : "#fbbf24";
 
             ctx.lineWidth=5;
@@ -4354,7 +4462,7 @@ function drawPopups(){
                 );
 
             ctx.fillStyle=
-                pop.text.includes("ՀԵՏ")
+                pop.text.includes("ՀԵՏ") || pop.text.includes("BACKLASH")
                 ? "#f87171"
                 : pop.text.includes("SUPER")
                 ? "#60a5fa"
@@ -4511,7 +4619,7 @@ function drawFlash(){
     ctx.fillRect(
         0,
         0,
-        1920,
+        battleWorldW,
         700
     );
 
@@ -4746,4 +4854,5 @@ window.addEventListener(
 
 </body>
 </html>
+
 ```
