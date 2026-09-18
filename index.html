@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -529,7 +528,6 @@ canvas{
 #enemy-weapons-list{
     line-height:1.6;
 }
-
 /* =========================================================
    PLAYER WEAPON TRAY
 ========================================================= */
@@ -850,6 +848,37 @@ canvas{
     #screen-battle .battle-arena-container{min-height:100svh}
 }
 
+/* =========================================================
+   STRATEGIC COMBAT HUD
+========================================================= */
+#energy-hud{
+    width:min(320px,48vw);
+    padding:8px 11px;
+    border:1px solid rgba(96,165,250,.45);
+    border-radius:12px;
+    background:rgba(5,10,18,.88);
+    box-shadow:0 8px 22px rgba(0,0,0,.28);
+    backdrop-filter:blur(8px);
+}
+.energy-head{display:flex;justify-content:space-between;gap:10px;font-size:10px;font-weight:900;color:#dbeafe;margin-bottom:5px}
+.energy-track{height:9px;border-radius:99px;background:#0f172a;overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+#energy-fill{height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#2563eb,#60a5fa,#a78bfa);box-shadow:0 0 14px rgba(96,165,250,.75);transition:width .18s ease}
+#battle-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#battle-actions button{min-height:36px;padding:8px 11px;font-size:10px;font-weight:900}
+#defend-btn{background:linear-gradient(180deg,#334155,#1e293b)}
+#charge-btn{background:linear-gradient(180deg,#0f766e,#115e59)}
+#super-ability-btn{background:linear-gradient(180deg,#1d4ed8,#172554);border-color:#60a5fa}
+#super-ability-btn.ready{box-shadow:0 0 20px rgba(96,165,250,.55);animation:superReadyPulse 1.1s infinite}
+@keyframes superReadyPulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.combat-toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:180;pointer-events:none;opacity:0;padding:8px 14px;border-radius:12px;background:rgba(2,6,23,.9);border:1px solid rgba(251,191,36,.5);font:900 18px Inter,sans-serif;letter-spacing:.5px;text-shadow:0 0 14px currentColor}
+.combat-toast.show{animation:combatToast .9s ease forwards}
+@keyframes combatToast{0%{opacity:0;transform:translate(-50%,12px) scale(.8)}15%,75%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-18px) scale(1.05)}}
+@media(max-width:600px){
+    #energy-hud{width:min(300px,88vw)}
+    #battle-actions{width:100%;justify-content:flex-start}
+    #battle-actions button{min-height:40px;padding:9px 10px}
+}
+
 /* FINAL VIEWPORT + LANGUAGE CONTROL */
 #screen-battle, #screen-battle .battle-arena-container{max-width:100vw;max-height:100dvh}
 .language-switcher{position:fixed;top:12px;left:12px;z-index:9999;display:flex;gap:4px;padding:4px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(5,8,14,.92);box-shadow:0 8px 24px rgba(0,0,0,.35)}
@@ -919,8 +948,6 @@ canvas{
 
     </div>
 </div>
-
-
 <!-- =========================================================
      LEVEL SCREEN
 ========================================================= -->
@@ -1003,6 +1030,7 @@ canvas{
         <div id="turn-indicator">
             ✨ YOUR TURN
         </div>
+        <div id="combat-toast" class="combat-toast"></div>
 
         <div id="enemy-weapons-panel">
 
@@ -1139,18 +1167,24 @@ canvas{
                 id="ground-weapons-tray">
             </div>
 
-            <button
-                id="super-ability-btn"
-                onclick="useSuperAbility()">
-                ⚡ ENERGY LIGHTNING
-            </button>
+            <div id="energy-hud" aria-label="Energy">
+                <div class="energy-head">
+                    <span id="energy-label">⚡ ENERGY</span>
+                    <span id="energy-value">0 / 100</span>
+                </div>
+                <div class="energy-track"><div id="energy-fill"></div></div>
+            </div>
+
+            <div id="battle-actions">
+                <button id="defend-btn" onclick="defendAction()">🛡️ DEFEND</button>
+                <button id="charge-btn" onclick="chargeAction()">⚡ CHARGE</button>
+                <button id="super-ability-btn" onclick="useSuperAbility()">⚡ ENERGY LIGHTNING</button>
+            </div>
 
         </div>
 
     </div>
 </div>
-
-
 <script>
 /* =========================================================
    GAME CONFIG
@@ -1163,6 +1197,7 @@ const levelConfigs = [
         name:"Starter Fields", hy:"Սկսնակ Դաշտ",
         unlocked:true,
         startGold:60,
+        description:"Damage control & Overkill", hyDescription:"Վնասի կառավարում և Overkill",
         enemyHp:35,
         enemyWeapons:[
             {id:"fist",name:"Fist", hy:"Բռունցք",damage:5,infinite:true},
@@ -1178,7 +1213,10 @@ const levelConfigs = [
         name:"Sunset Fortress", hy:"Մայրամուտի Ամրոց",
         unlocked:false,
         startGold:90,
+        description:"Shield breaking", hyDescription:"Վահանի կոտրում",
         enemyHp:55,
+        enemyShield:8,
+        enemyType:"guardian",
         enemyWeapons:[
             {id:"fist",name:"Fist", hy:"Բռունցք",damage:6,infinite:true},
             {id:"rock",name:"Rock", hy:"Քար",damage:10},
@@ -1194,7 +1232,10 @@ const levelConfigs = [
         name:"Moonlit Night", hy:"Լուսնյակ Գիշեր",
         unlocked:false,
         startGold:130,
+        description:"Energy & Super", hyDescription:"Էներգիա և Սուպեր",
         enemyHp:80,
+        enemyShield:12,
+        enemyType:"energyMage",
         enemyWeapons:[
             {id:"fist",name:"Fist", hy:"Բռունցք",damage:8,infinite:true},
             {id:"sword",name:"Sword", hy:"Սուր",damage:16},
@@ -1210,7 +1251,10 @@ const levelConfigs = [
         name:"Cursed Lands", hy:"Անեծքի Գոտի",
         unlocked:false,
         startGold:170,
+        description:"Wind & Berserker", hyDescription:"Քամի և Բերսերկեր",
         enemyHp:110,
+        enemyShield:14,
+        enemyType:"berserker",
         enemyWeapons:[
             {id:"fist",name:"Fist", hy:"Բռունցք",damage:10,infinite:true},
             {id:"sword",name:"Sword", hy:"Սուր",damage:20},
@@ -1226,7 +1270,10 @@ const levelConfigs = [
         name:"Dark Lord’s Throne", hy:"Dark Lord-ի Գահը",
         unlocked:false,
         startGold:220,
+        description:"Boss mastery", hyDescription:"Բոսի վարպետություն",
         enemyHp:150,
+        enemyShield:25,
+        enemyType:"boss",
         enemyWeapons:[
             {id:"fist",name:"Fist", hy:"Բռունցք",damage:12,infinite:true},
             {id:"sword",name:"Elite Sword", hy:"Էլիտար Սուր",damage:25},
@@ -1312,17 +1359,16 @@ let catapultAnim = {
     releaseKick:0
 };
 
-let superCooldownMax = 3;
-
-let superCooldownCurrent = 3;
-
+let maxEnergy = 100;
+let energy = 0;
 let flashEffectTimer = 0;
-
 let lightningBolts = [];
-
-let tutorialShownLevel3 = false;
-
+let tutorialShownLevel3 = localStorage.getItem("epica_level3_tutorial_seen") === "1";
 let tutorialClosing = false;
+let hitStopTimer = 0;
+let cameraShakeX = 0;
+let cameraShakeY = 0;
+let environmentTime = 0;
 
 
 /* =========================================================
@@ -1343,7 +1389,20 @@ const players = [
         squashY:1,
         hitPopups:[],
         attackAnim:0,
-        idleOffset:0
+        idleOffset:0,
+        shield:0,
+        maxShield:0,
+        defending:false,
+        enemyType:"",
+        recoilX:0,
+        recoilY:0,
+        recoilRot:0,
+        reactionTimer:0,
+        damageState:0,
+        damageFlash:0,
+        castleDamage:0,
+        energy:0,
+        aiEnergy:0
     },
 
     {
@@ -1357,7 +1416,20 @@ const players = [
         squashY:1,
         hitPopups:[],
         attackAnim:0,
-        idleOffset:0
+        idleOffset:0,
+        shield:0,
+        maxShield:0,
+        defending:false,
+        enemyType:"",
+        recoilX:0,
+        recoilY:0,
+        recoilRot:0,
+        reactionTimer:0,
+        damageState:0,
+        damageFlash:0,
+        castleDamage:0,
+        energy:0,
+        aiEnergy:0
     }
 
 ];
@@ -1375,124 +1447,54 @@ let gameLoopRunning = false;
 
 let animationFrameId = null;
 
-// Responsive battle world. The original 1920px fixed world made the
-// battlefield too wide on some screens and tiny on phones.
 let battleWorldW = 1200;
 const battleWorldH = 700;
 let battleScale = 1;
 
-
-
-/* =========================================================
-   CANVAS RESIZE
-========================================================= */
-
 function resizeCanvas(){
     const rect=canvas.getBoundingClientRect();
     const dpr=Math.min(window.devicePixelRatio||1,2);
-
     canvas.width=Math.max(1,Math.floor(rect.width*dpr));
     canvas.height=Math.max(1,Math.floor(rect.height*dpr));
-
     ctx.setTransform(dpr,0,0,dpr,0,0);
-
-    // Keep both fighters on screen while preserving a usable scale.
     const aspect=rect.width/Math.max(1,rect.height);
-    if(aspect<0.9){
-        battleWorldW=760;
-    }else if(aspect<1.25){
-        battleWorldW=900;
-    }else{
-        battleWorldW=1200;
-    }
-
+    if(aspect<0.9){battleWorldW=760;}else if(aspect<1.25){battleWorldW=900;}else{battleWorldW=1200;}
     players[0].castleX=battleWorldW*.16;
     players[1].castleX=battleWorldW*.84;
 }
 window.addEventListener("resize",resizeCanvas);
-setTimeout(()=>{resizeCanvas();setLanguage("en");},0);
+setTimeout(()=>{resizeCanvas();setLanguage(currentLanguage);},0);
 
+let currentLanguage=localStorage.getItem("epica_language")||"en";
 
-/* =========================================================
-   SCREEN MANAGEMENT
-========================================================= */
-
-
-/* =========================================================
-   LANGUAGE SYSTEM
-========================================================= */
-let currentLanguage="en";
-
-const UI_TEXT={
+const UI_TEXT = {
     en:{
-        rulesTitle:"📜 GAME RULES",
-        welcome:"Welcome to <b style=\"color:#fbbf24;\">Epica: Campaign Conquest</b>",
-        rule1:"⚔️ <b>Turn-based combat.</b> Choose a weapon from your arsenal and attack the opponent.",
-        rule2:"🪙 <b>Gold & Arsenal.</b> Each level has starting gold. Buy stronger weapons in the shop.",
-        rule3:"⚠️ <span class=\"highlight-danger\">OVERKILL.</span> If damage exceeds the opponent’s remaining HP, the excess damage hits you back.",
-        rule4:"⚡ <b>ENERGY LIGHTNING.</b> Unlocks from Level 3. It charges during turns.",
-        gotIt:"Got it ➜",
-        levelsTitle:"SELECT LEVEL",
-        levelsHint:"Win battles to unlock the next level.",
-        rules:"📖 Rules",
-        levels:"📜 Levels",
-        battle:"⚔️ BATTLE",
-        enemyArsenal:"🎯 ENEMY ARSENAL",
-        superTitle:"SUPER ABILITY UNLOCKED",
-        tutorial:"You reached <b>Level 3</b>.<br>Here you unlock <b style=\"color:#60a5fa;\">ENERGY LIGHTNING</b>.",
-        tutorial2:"It deals <b>35 damage</b> and recharges after each of your turns.",
-        tutorialHint:"Press “Got it” to start the battle.",
-        superLabel:"⚡ SUPER ABILITY",
-        retry:"🔄 Retry",
-        next:"⏩ Next Level",
-        yourTurn:"✨ YOUR TURN",
-        enemyTurn:"⚔️ OPPONENT’S TURN...",
-        charge:"⏳ Charging",
-        damage:"⚔️ Damage:",
-        infinite:"INFINITE",
-        buy:"Buy",
-        standard:"Standard",
-        open:"🔓 OPEN",
-        locked:"🔒 LOCKED",
-        levelComplete:"LEVEL COMPLETE!",
-        defeat:"DEFEAT",
-        bothDefeated:"BOTH DEFEATED (OVERKILL)!",
-        backlash:"BACKLASH"
+        rulesTitle:"📜 GAME RULES", welcome:"Welcome to <b style=\"color:#fbbf24;\">Epica: Campaign Conquest</b>",
+        rule1:"⚔️ <b>Turn-based combat.</b> Choose a weapon, defend, or charge. The opponent is controlled by AI.",
+        rule2:"🪙 <b>Gold & Arsenal.</b> Each level has starting gold. Buy a small set of weapons with different tactical roles.",
+        rule3:"⚠️ <span class=\"highlight-danger\">OVERKILL.</span> Excess damage becomes Backlash, Residual Energy, and Dissipation. More damage is not always better.",
+        rule4:"⚡ <b>ENERGY.</b> Build Energy through combat and spend it on Super Abilities from Level 3.",
+        gotIt:"Got it ➜", levelsTitle:"SELECT LEVEL", levelsHint:"Win battles to unlock the next level.", rules:"📖 Rules", levels:"📜 Levels", battle:"⚔️ BATTLE",
+        enemyArsenal:"🎯 ENEMY ARSENAL", superTitle:"ENERGY SYSTEM UNLOCKED", tutorial:"You reached <b>Level 3</b>.<br>Energy is now used to activate your Super Ability.", tutorial2:"Attack and Overkill generate Energy. Save it for <b style=\"color:#60a5fa;\">ENERGY LIGHTNING</b>, or use the tactical options when needed.", tutorialHint:"Press “Got it” to start the battle.", superLabel:"⚡ ENERGY SUPER", retry:"🔄 Retry", next:"⏩ Next Level",
+        yourTurn:"✨ YOUR TURN", enemyTurn:"⚔️ OPPONENT’S TURN...", damage:"⚔️ Damage:", infinite:"INFINITE", buy:"Buy", standard:"Standard", open:"🔓 OPEN", locked:"🔒 LOCKED",
+        levelComplete:"LEVEL COMPLETE!", defeat:"DEFEAT", bothDefeated:"BOTH DEFEATED!", backlash:"BACKLASH", overkill:"OVERKILL!", energy:"ENERGY",
+        defend:"🛡️ DEFEND", charge:"⚡ CHARGE", defended:"DEFENSE READY", charged:"ENERGY +", shield:"SHIELD", absorbed:"ABSORBED", dissipated:"DISSIPATED",
+        superReady:"⚡ ENERGY LIGHTNING", insufficient:"NOT ENOUGH ENERGY", breaker:"BREAKER", boss:"BOSS", critical:"CRITICAL!",
+        fistRole:"Control • precise", rockRole:"Moderate power", swordRole:"Balanced • energy", axeRole:"High risk • high reward"
     },
     hy:{
-        rulesTitle:"📜 ԽԱՂԻ ԿԱՆՈՆՆԵՐԸ",
-        welcome:"Բարի գալուստ <b style=\"color:#fbbf24;\">Epica: Campaign Conquest</b>",
-        rule1:"⚔️ <b>Հերթափոխով մարտ.</b> Ընտրեք զենքը ձեր զինանոցից և հարձակվեք հակառակորդի վրա։",
-        rule2:"🪙 <b>Ոսկի և զինանոց.</b> Յուրաքանչյուր մակարդակ ունի իր սկզբնական ոսկին։ Խանութում կարող եք ձեռք բերել ավելի հզոր զենքեր։",
-        rule3:"⚠️ <span class=\"highlight-danger\">OVERKILL.</span> Եթե հասցրած վնասը գերազանցում է հակառակորդի մնացած HP-ն, ավելորդ վնասը հետ է հարվածում ձեզ։",
-        rule4:"⚡ <b>ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿ.</b> Բացվում է միայն 3-րդ մակարդակից։ Այն լիցքավորվում է հերթերի ընթացքում։",
-        gotIt:"Հասկացա ➜",
-        levelsTitle:"ԸՆՏՐԵՔ ՄԱԿԱՐԴԱԿԸ",
-        levelsHint:"Հաղթեք մարտերում՝ հաջորդ մակարդակը բացելու համար։",
-        rules:"📖 Կանոններ",
-        levels:"📜 Մակարդակներ",
-        battle:"⚔️ ՄԱՐՏԻ",
-        enemyArsenal:"🎯 Թշնամու զինանոց",
-        superTitle:"ԳԵՐՀԱՐՎԱԾԻ ԱԿՏԻՎԱՑՈՒՄ",
-        tutorial:"Դու հասել ես <b>3-րդ մակարդակին</b>։<br>Այստեղ առաջին անգամ հասանելի է <b style=\"color:#60a5fa;\">ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿԸ</b>։",
-        tutorial2:"Այն հասցնում է <b>35 վնաս</b> և լիցքավորվում է յուրաքանչյուր վերադարձած խաղացողի հերթի ժամանակ։",
-        tutorialHint:"Սեղմիր «Հասկացա», և մարտը կսկսվի։",
-        superLabel:"⚡ ՍՈՒՊԵՐ ԿԱՐՈՂՈՒԹՅՈՒՆ",
-        retry:"🔄 Կրկին փորձել",
-        next:"⏩ Հաջորդ մակարդակը",
-        yourTurn:"✨ ՁԵՐ ՀԵՐԹՆ Է",
-        enemyTurn:"⚔️ ՀԱԿԱՌԱԿՈՐԴԻ ՀԵՐԹՆ Է...",
-        charge:"⏳ Լիցքավորում",
-        damage:"⚔️ Վնաս:",
-        infinite:"ԱՆՍԱՀՄԱՆ",
-        buy:"Գնել",
-        standard:"Ստանդարտ",
-        open:"🔓 ԲԱՑ Է",
-        locked:"🔒 ՓԱԿ Է",
-        levelComplete:"ՄԱԿԱՐԴԱԿՆ ԱՆՑՎԱԾ Է!",
-        defeat:"ՊԱՐՏՈՒԹՅՈՒՆ",
-        bothDefeated:"ԵՐԿՈՒՍԴ ԷԼ ՊԱՐՏՎԵՑԻՔ (OVERKILL)!",
-        backlash:"ՀԵՏՀԱՐՎԱԾ"
+        rulesTitle:"📜 ԽԱՂԻ ԿԱՆՈՆՆԵՐԸ", welcome:"Բարի գալուստ <b style=\"color:#fbbf24;\">Epica: Campaign Conquest</b>",
+        rule1:"⚔️ <b>Հերթափոխով մարտ.</b> Ընտրեք զենք, պաշտպանվեք կամ լիցքավորեք էներգիան։ Հակառակորդը կառավարվում է AI-ով։",
+        rule2:"🪙 <b>Ոսկի և զինանոց.</b> Յուրաքանչյուր մակարդակ ունի սկզբնական ոսկի։ Զենքերը ունեն տարբեր մարտավարական դերեր։",
+        rule3:"⚠️ <span class=\"highlight-danger\">OVERKILL.</span> Ավելորդ վնասը բաժանվում է Հետհարվածի, Էներգիայի և կորուստի։ Ավելի մեծ վնասը միշտ ավելի լավ չէ։",
+        rule4:"⚡ <b>ԷՆԵՐԳԻԱ.</b> Էներգիան ստացվում է մարտից և ծախսվում է Սուպեր կարողությունների վրա՝ 3-րդ մակարդակից։",
+        gotIt:"Հասկացա ➜", levelsTitle:"ԸՆՏՐԵՔ ՄԱԿԱՐԴԱԿԸ", levelsHint:"Հաղթեք մարտերում՝ հաջորդ մակարդակը բացելու համար։", rules:"📖 Կանոններ", levels:"📜 Մակարդակներ", battle:"⚔️ ՄԱՐՏ",
+        enemyArsenal:"🎯 Թշնամու զինանոց", superTitle:"ԷՆԵՐԳԻԱՅԻ ՀԱՄԱԿԱՐԳԸ ԲԱՑՎԵՑ", tutorial:"Դու հասել ես <b>3-րդ մակարդակին</b>։<br>Այժմ Էներգիան օգտագործվում է Սուպեր կարողությունը ակտիվացնելու համար։", tutorial2:"Հարձակումներն ու Overkill-ը առաջացնում են Էներգիա։ Խնայիր այն <b style=\"color:#60a5fa;\">ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿԻ</b> համար։", tutorialHint:"Սեղմիր «Հասկացա», և մարտը կսկսվի։", superLabel:"⚡ ԷՆԵՐԳԵՏԻԿ ՍՈՒՊԵՐ", retry:"🔄 Կրկին փորձել", next:"⏩ Հաջորդ մակարդակը",
+        yourTurn:"✨ ՁԵՐ ՀԵՐԹՆ Է", enemyTurn:"⚔️ ՀԱԿԱՌԱԿՈՐԴԻ ՀԵՐԹՆ Է...", damage:"⚔️ Վնաս:", infinite:"ԱՆՍԱՀՄԱՆ", buy:"Գնել", standard:"Ստանդարտ", open:"🔓 ԲԱՑ Է", locked:"🔒 ՓԱԿ Է",
+        levelComplete:"ՄԱԿԱՐԴԱԿՆ ԱՆՑՎԱԾ Է!", defeat:"ՊԱՐՏՈՒԹՅՈՒՆ", bothDefeated:"ԵՐԿՈՒՍԴ ԷԼ ՊԱՐՏՎԵՑԻՔ!", backlash:"ՀԵՏՀԱՐՎԱԾ", overkill:"OVERKILL!", energy:"ԷՆԵՐԳԻԱ",
+        defend:"🛡️ ՊԱՇՏՊԱՆՎԵԼ", charge:"⚡ ԼԻՑՔԱՎՈՐԵԼ", defended:"ՊԱՇՏՊԱՆՈՒԹՅՈՒՆԸ ՊԱՏՐԱՍՏ Է", charged:"ԷՆԵՐԳԻԱ +", shield:"ՎԱՀԱՆ", absorbed:"ԿԼԱՆՎԱԾ", dissipated:"ԿՈՐԱՎ",
+        superReady:"⚡ ԷՆԵՐԳԵՏԻԿ ԿԱՅԾԱԿ", insufficient:"ԲԱՎԱՐԱՐ ԷՆԵՐԳԻԱ ՉԿԱ", breaker:"ՋԱՐԴՈՂ", boss:"ԲՈՍ", critical:"ՔՐԻԹԻԿԱԿԱՆ!",
+        fistRole:"Կառավարում • ճշգրիտ", rockRole:"Միջին ուժ", swordRole:"Հավասարակշռված • էներգիա", axeRole:"Բարձր ռիսկ • բարձր պարգև"
     }
 };
 
@@ -1500,23 +1502,20 @@ function t(key){ return UI_TEXT[currentLanguage][key] || UI_TEXT.en[key] || key;
 
 function setLanguage(lang){
     currentLanguage=lang==="hy"?"hy":"en";
+    localStorage.setItem("epica_language",currentLanguage);
     document.documentElement.lang=currentLanguage;
     document.getElementById("lang-en").classList.toggle("active",currentLanguage==="en");
     document.getElementById("lang-hy").classList.toggle("active",currentLanguage==="hy");
-
     document.getElementById("rules-title").innerText=t("rulesTitle");
     document.querySelector("#screen-rules .box-container p").innerHTML=t("welcome");
     const rules=document.querySelectorAll("#screen-rules .rules-list li");
-    if(rules[0]) rules[0].innerHTML=t("rule1");
-    if(rules[1]) rules[1].innerHTML=t("rule2");
-    if(rules[2]) rules[2].innerHTML=t("rule3");
-    if(rules[3]) rules[3].innerHTML=t("rule4");
+    ["rule1","rule2","rule3","rule4"].forEach((k,i)=>{if(rules[i])rules[i].innerHTML=t(k);});
     document.querySelector("#screen-rules button").innerText=t("gotIt");
     document.getElementById("levels-title").innerText=t("levelsTitle");
     document.querySelector("#screen-levels .box-container p").innerText=t("levelsHint");
     document.querySelector("#screen-levels button").innerText=t("rules");
-    document.querySelector("#screen-shop button[onclick*='screen-levels']").innerText=t("levels");
-    document.querySelector("#screen-shop button[onclick='startBattle()']").innerText=t("battle");
+    document.querySelector("#screen-shop button[onclick*=\"screen-levels\"]").innerText=t("levels");
+    document.querySelector("#screen-shop button[onclick=\"startBattle()\"]").innerText=t("battle");
     document.querySelector("#enemy-weapons-panel div").innerText=t("enemyArsenal");
     document.querySelector("#tutorial-overlay h3").innerText=t("superTitle");
     document.querySelector("#tutorial-overlay .tutorial-box p:nth-of-type(1)").innerHTML=t("tutorial");
@@ -1526,3191 +1525,527 @@ function setLanguage(lang){
     document.querySelector("#tutorial-arrow .tutorial-label").innerText=t("superLabel");
     document.getElementById("retry-level-btn").innerText=t("retry");
     document.getElementById("next-level-btn").innerText=t("next");
-
-    renderLevelsUI();
-    updateShopUI();
-    updateHUD();
+    document.getElementById("defend-btn").innerText=t("defend");
+    document.getElementById("charge-btn").innerText=t("charge");
+    document.getElementById("energy-label").innerText="⚡ "+t("energy");
+    renderLevelsUI(); updateShopUI(); updateHUD();
 }
 
 function weaponLabel(w){ return currentLanguage==="hy" ? (w.hy || w.name) : w.name; }
 function levelLabel(lvl){ return currentLanguage==="hy" ? (lvl.hy || lvl.name) : lvl.name; }
 
+function addEnergy(amount, source="") {
+    if(amount<=0) return 0;
+    const before=energy;
+    energy=Math.max(0,Math.min(maxEnergy,energy+amount));
+    const gained=energy-before;
+    updateHUD();
+    if(gained>0 && source) showCombatToast(`+${gained} ${t("energy")}`,"#60a5fa");
+    return gained;
+}
+
+function spendEnergy(amount){
+    if(energy<amount) return false;
+    energy-=amount; updateHUD(); return true;
+}
+
+function showCombatToast(text,color="#fbbf24"){
+    const el=document.getElementById("combat-toast"); if(!el) return;
+    el.textContent=text; el.style.color=color; el.classList.remove("show");
+    void el.offsetWidth; el.classList.add("show");
+}
+
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+function weaponProfile(weapon){
+    const id=weapon.id;
+    if(id==="fist") return {energy:3,backlash:.25,impact:1,role:t("fistRole")};
+    if(id==="rock") return {energy:2,backlash:.35,impact:1.4,role:t("rockRole")};
+    if(id==="sword" || id==="eliteSword") return {energy:4,backlash:.30,impact:1.6,role:t("swordRole")};
+    if(id==="axe" || id==="titanAxe") return {energy:2,backlash:.55,impact:2.5,role:t("axeRole")};
+    if(id==="super") return {energy:0,backlash:.45,impact:3.2,role:t("superReady")};
+    return {energy:2,backlash:.35,impact:1};
+}
+
+function applyShield(target,damage){
+    const blocked=Math.min(target.shield||0,damage);
+    target.shield=Math.max(0,(target.shield||0)-blocked);
+    return {blocked,remaining:damage-blocked};
+}
+
+function setReaction(target,projectile,actualDamage,overkill=0,blocked=0){
+    const profile=weaponProfile(projectile);
+    const ratio=target.maxHp>0?actualDamage/target.maxHp:1;
+    let intensity=1;
+    if(overkill>0) intensity=4;
+    else if(actualDamage>=30 || ratio>=.28) intensity=3;
+    else if(actualDamage>=12 || ratio>=.13) intensity=2;
+    else intensity=1;
+    if(blocked>0 && actualDamage<6) intensity=1;
+    target.damageState=intensity;
+    target.reactionTimer=[8,12,18,30][intensity-1];
+    target.damageFlash=[3,4,6,9][intensity-1];
+    const dir=projectile.shooter.id===target.id?-1:(projectile.shooter.id===0?1:-1);
+    const impulse=[3,6,11,18][intensity-1]*profile.impact*.45;
+    target.recoilX=dir*impulse;
+    target.recoilY=intensity===4?-10:intensity===3?-5:0;
+    target.recoilRot=dir*(intensity===1?.025:intensity===2?.05:intensity===3?.09:.14);
+    target.squashX=intensity===1?1.08:intensity===2?1.16:intensity===3?1.28:1.45;
+    target.squashY=intensity===1?.94:intensity===2?.86:intensity===3?.74:.58;
+    target.castleDamage=clamp(1-target.hp/target.maxHp,0,1);
+    const hitStop=[0,2,4,7][intensity-1];
+    hitStopTimer=Math.max(hitStopTimer,hitStop);
+    const shake=[.5,2,4.5,9][intensity-1]*profile.impact;
+    screenShake=Math.max(screenShake,shake);
+    cameraShakeX=(Math.random()-.5)*shake; cameraShakeY=(Math.random()-.5)*shake;
+    return intensity;
+}
+
+function resolveDamage(attacker,target,weapon,options={}){
+    const raw=Math.max(0,options.damage ?? weapon.damage);
+    const shieldResult=applyShield(target,raw);
+    let incoming=shieldResult.remaining;
+    let defenseReduction=0;
+    if(target.defending){
+        defenseReduction=Math.floor(incoming*.5);
+        incoming-=defenseReduction;
+        target.defending=false;
+    }
+    const originalHp=target.hp;
+    const actualDamage=Math.min(incoming,originalHp);
+    const excess=Math.max(0,incoming-originalHp);
+    target.hp=Math.max(0,originalHp-incoming);
+    const reactionProjectile={...weapon,shooter:attacker};
+    const intensity=setReaction(target,reactionProjectile,actualDamage,excess,shieldResult.blocked+defenseReduction);
+    target.hitPopups.push({text:`-${actualDamage}`,alpha:1,yOffset:0,kind:intensity>=4?"overkill":"damage",size:intensity===1?18:intensity===2?22:intensity===3?27:32});
+    if(shieldResult.blocked>0) target.hitPopups.push({text:`🛡️ -${shieldResult.blocked} ${t("shield")}`,alpha:1,yOffset:-34,kind:"shield",size:15});
+    if(defenseReduction>0) target.hitPopups.push({text:`${t("defended")} -${defenseReduction}`,alpha:1,yOffset:-58,kind:"shield",size:13});
+    const profile=weaponProfile(weapon);
+    const energyGain=Math.max(0,Math.round(profile.energy + actualDamage*.06));
+    if(attacker.id===0) addEnergy(energyGain);
+    else attacker.aiEnergy=Math.min(maxEnergy,attacker.aiEnergy+energyGain);
+    if(target.id===1 && target.enemyType==="energyMage" && attacker.id===0 && energy>0){
+        const stolen=Math.min(5,energy);
+        energy-=stolen;
+        target.aiEnergy=Math.min(maxEnergy,target.aiEnergy+stolen);
+        target.hitPopups.push({text:`-${stolen} ${t("energy")}`,alpha:1,yOffset:-78,kind:"backlash",size:13});
+        showCombatToast(`-${stolen} ${t("energy")}`,"#f87171");
+    }
+    if(excess>0){
+        const backlash=Math.max(1,Math.floor(excess*profile.backlash));
+        const energyPart=Math.max(1,Math.floor(excess*.34));
+        const dissipated=Math.max(0,excess-backlash-energyPart);
+        const effectiveBacklash=Math.min(backlash,attacker.hp);
+        attacker.hp=Math.max(0,attacker.hp-effectiveBacklash);
+        if(attacker.id===0) energy=Math.min(maxEnergy,energy+energyPart);
+        attacker.squashX=1.18; attacker.squashY=.8; attacker.recoilX+=(attacker.id===0?-1:1)*4;
+        attacker.hitPopups.push({text:`⚠️ ${t("backlash")} -${effectiveBacklash}`,alpha:1,yOffset:-30,kind:"backlash",size:18});
+        if(attacker.id===0 && energyPart>0) attacker.hitPopups.push({text:`+${energyPart} ${t("energy")}`,alpha:1,yOffset:-60,kind:"energy",size:16});
+        showCombatToast(`${t("overkill")}  +${energyPart} ${t("energy")}  ${effectiveBacklash} ${t("backlash")}  ${dissipated} ${t("dissipated")}`,"#fbbf24");
+        createResidualEnergy(target,attacker,energyPart,dissipated,effectiveBacklash);
+    }
+    if(actualDamage>0) createImpact(getCharacterX(target),470,weapon.id);
+    target.castleDamage=clamp(1-target.hp/target.maxHp,0,1);
+    return {raw,blocked:shieldResult.blocked,defenseReduction,actualDamage,excess,intensity,energyGain};
+}
+
+function createResidualEnergy(target,attacker,energyPart,dissipated,backlash){
+    const origin={x:getCharacterX(target),y:465};
+    for(let i=0;i<Math.min(14,3+Math.ceil((energyPart+dissipated)/2));i++){
+        const angle=Math.random()*Math.PI*2; const speed=1.2+Math.random()*3.5;
+        particles.push({x:origin.x,y:origin.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-2,radius:2+Math.random()*2,color:"#60a5fa",alpha:1,decay:.018,energyTarget:attacker.id===0 && i<energyPart?"player":(i<energyPart+Math.max(1,dissipated)?"fade":null)});
+    }
+}
+
+function defendAction(){
+    if(currentTurn!==0||flyingProjectile||gameOver||battlePaused) return;
+    players[0].defending=true;
+    players[0].hitPopups.push({text:t("defended"),alpha:1,yOffset:0,kind:"shield",size:17});
+    showCombatToast(t("defended"),"#93c5fd");
+    switchTurn(); updateHUD();
+}
+
+function chargeAction(){
+    if(currentTurn!==0||flyingProjectile||gameOver||battlePaused) return;
+    const gained=addEnergy(10);
+    players[0].hitPopups.push({text:`+${gained} ${t("energy")}`,alpha:1,yOffset:0,kind:"energy",size:18});
+    showCombatToast(`+${gained} ${t("energy")}`,"#60a5fa");
+    switchTurn(); updateHUD();
+}
 
 function showScreen(screenId){
-
-    document
-        .querySelectorAll(".screen")
-        .forEach(screen=>{
-            screen.classList.remove("active-screen");
-        });
-
-    const screen = document.getElementById(screenId);
-
+    document.querySelectorAll(".screen").forEach(screen=>{screen.classList.remove("active-screen");});
+    const screen=document.getElementById(screenId);
     screen.classList.add("active-screen");
-
-    if(screenId==="screen-levels"){
-        renderLevelsUI();
-    }
-
-    if(screenId==="screen-shop"){
-        updateShopUI();
-    }
-
-    if(screenId==="screen-battle"){
-
-        resizeCanvas();
-
-        startGameLoop();
-
-    }
-
+    if(screenId==="screen-levels"){renderLevelsUI();}
+    if(screenId==="screen-shop"){updateShopUI();}
+    if(screenId==="screen-battle"){resizeCanvas();startGameLoop();}
 }
-
-
-/* =========================================================
-   LEVEL UI
-========================================================= */
 
 function renderLevelsUI(){
-
-    const container =
-        document.getElementById("levels-container");
-
+    const container=document.getElementById("levels-container");
     container.innerHTML="";
-
     levelConfigs.forEach((lvl,idx)=>{
-
-        const card =
-            document.createElement("div");
-
-        card.className =
-            `level-card ${lvl.unlocked ? "" : "locked"}`;
-
-        card.innerHTML=`
-
-            <div class="level-title">
-                ${lvl.level}
-            </div>
-
-            <div class="level-name">
-                ${levelLabel(lvl)}
-            </div>
-
-            <div class="level-subtitle">
-                ${
-                    lvl.unlocked
-                    ? t("open")
-                    : t("locked")
-                }
-            </div>
-
-        `;
-
-        if(lvl.unlocked){
-
-            card.onclick=()=>{
-                selectLevel(idx);
-            };
-
-        }
-
+        const card=document.createElement("div");
+        card.className=`level-card ${lvl.unlocked ? "" : "locked"}`;
+        card.innerHTML=`<div class="level-title">${lvl.level}</div><div class="level-name">${levelLabel(lvl)}</div><div class="level-subtitle">${currentLanguage==="hy"?(lvl.hyDescription||""):(lvl.description||"")}</div><div class="level-subtitle">${lvl.unlocked?t("open"):t("locked")}</div>`;
+        if(lvl.unlocked){card.onclick=()=>{selectLevel(idx);};}
         container.appendChild(card);
-
     });
-
 }
-
-
-/* =========================================================
-   SELECT LEVEL
-========================================================= */
 
 function selectLevel(idx){
-
     if(!levelConfigs[idx].unlocked) return;
-
     currentLevelIdx=idx;
-
     const config=levelConfigs[idx];
-
     resetBattleState();
-
-    players[0].hp=100;
-
-    players[0].maxHp=100;
-
-    players[0].gold=config.startGold;
-
-    players[0].weapons=[
-        {...shopWeapons[0]}
-    ];
-
-    players[1].name=
-        `Enemy • LEVEL ${config.level}`;
-
-    players[1].hp=config.enemyHp;
-
-    players[1].maxHp=config.enemyHp;
-
-    players[1].weapons=
-        JSON.parse(
-            JSON.stringify(config.enemyWeapons)
-        );
-
-    superCooldownCurrent=
-        superCooldownMax;
-
-    document.getElementById(
-        "shop-level-title"
-    ).innerText=
-        `${currentLanguage==="hy"?"ՄԱԿԱՐԴԱԿ":"LEVEL"} ${config.level}: ${levelLabel(config)}`;
-
+    players[0].hp=100; players[0].maxHp=100; players[0].gold=config.startGold;
+    players[0].weapons=[{...shopWeapons[0]}];
+    players[1].name=`Enemy • LEVEL ${config.level}`;
+    players[1].hp=config.enemyHp; players[1].maxHp=config.enemyHp;
+    players[1].enemyType=config.enemyType||""; players[1].aiEnergy=0;
+    players[1].weapons=JSON.parse(JSON.stringify(config.enemyWeapons));
+    energy=0; players[0].shield=0; players[0].maxShield=0;
+    players[1].shield=config.enemyShield||0; players[1].maxShield=config.enemyShield||0;
+    players[1].defending=false; players[0].defending=false;
+    document.getElementById("shop-level-title").innerText=`${currentLanguage==="hy"?"ՄԱԿԱՐԴԱԿ":"LEVEL"} ${config.level}: ${levelLabel(config)}`;
     showScreen("screen-shop");
-
 }
-
-
-/* =========================================================
-   RESET BATTLE
-========================================================= */
 
 function resetBattleState(){
-
-    currentTurn=0;
-
-    gameOver=false;
-
-    battlePaused=false;
-
-    loadedWeapon=null;
-
-    flyingProjectile=null;
-
-    particles=[];
-
-    effects=[];
-
-    lightningBolts=[];
-
-    flashEffectTimer=0;
-
-    screenShake=0;
-
-    catapultAnim={
-        pulling:0,
-        releaseKick:0
-    };
-
+    currentTurn=0; gameOver=false; battlePaused=false; loadedWeapon=null; flyingProjectile=null;
+    particles=[]; effects=[]; lightningBolts=[]; flashEffectTimer=0; hitStopTimer=0; cameraShakeX=0; cameraShakeY=0;
+    screenShake=0; catapultAnim={pulling:0,releaseKick:0};
     players.forEach(p=>{
-
-        p.squashX=1;
-
-        p.squashY=1;
-
-        p.hitPopups=[];
-
-        p.attackAnim=0;
-
+        p.squashX=1; p.squashY=1; p.hitPopups=[]; p.attackAnim=0;
+        p.recoilX=0; p.recoilY=0; p.recoilRot=0; p.reactionTimer=0; p.damageState=0; p.damageFlash=0;
+        p.castleDamage=clamp(1-p.hp/Math.max(1,p.maxHp),0,1); p.defending=false;
     });
-
     hideGameOver();
-
 }
-
-
-/* =========================================================
-   SHOP
-========================================================= */
 
 function updateShopUI(){
-
-    document.getElementById(
-        "player-gold"
-    ).innerText=
-        players[0].gold;
-
-    const container=
-        document.getElementById(
-            "shop-items-container"
-        );
-
+    document.getElementById("player-gold").innerText=players[0].gold;
+    const container=document.getElementById("shop-items-container");
     container.innerHTML="";
-
     shopWeapons.forEach((w,index)=>{
-
-        const card=
-            document.createElement("div");
-
-        card.className="shop-item-card";
-
-        card.style.animationDelay=
-            `${index*.08}s`;
-
-        const priceText=
-            w.infinite
-            ? t("infinite")
-            : `${w.price} 🪙`;
-
-        card.innerHTML=`
-
-            <div>
-
-                <div class="weapon-icon">
-                    ${w.icon}
-                </div>
-
-                <div class="shop-name">
-                    ${weaponLabel(w)}
-                </div>
-
-                <div class="shop-damage">
-                    ${t("damage")} ${w.damage}
-                </div>
-
-            </div>
-
-            <div>
-
-                <div style="
-                    color:#f59e0b;
-                    font-weight:700;
-                    font-size:12px;
-                    margin-bottom:8px;">
-                    ${priceText}
-                </div>
-
-                <button
-                    onclick="buyWeapon('${w.id}')"
-                    style="width:100%;padding:7px;"
-                    ${
-                        w.infinite ||
-                        w.price>players[0].gold
-                        ? "disabled"
-                        : ""
-                    }>
-                    ${w.infinite ? t("standard") : t("buy")}
-                </button>
-
-            </div>
-        `;
-
+        const card=document.createElement("div");
+        card.className="shop-item-card"; card.style.animationDelay=`${index*.08}s`;
+        const priceText=w.infinite?t("infinite"):`${w.price} 🪙`;
+        card.innerHTML=`<div><div class="weapon-icon">${w.icon}</div><div class="shop-name">${weaponLabel(w)}</div><div class="shop-damage">${t("damage")} ${w.damage}</div></div><div><div style="color:#f59e0b;font-weight:700;font-size:12px;margin-bottom:8px;">${priceText}</div><button onclick="buyWeapon('${w.id}')" style="width:100%;padding:7px;" ${w.infinite||w.price>players[0].gold?"disabled":""}>${w.infinite?t("standard"):t("buy")}</button></div>`;
         container.appendChild(card);
-
     });
-
 }
-
-
-/* =========================================================
-   BUY WEAPON
-========================================================= */
 
 function buyWeapon(id){
-
-    const item=
-        shopWeapons.find(w=>w.id===id);
-
+    const item=shopWeapons.find(w=>w.id===id);
     if(!item || item.infinite) return;
-
     if(players[0].gold>=item.price){
-
         players[0].gold-=item.price;
-
-        players[0].weapons.push({
-            ...item
-        });
-
-        spawnPurchaseEffect();
-
+        players[0].weapons.push({...item});
         updateShopUI();
-
     }
-
 }
-
-
-/* =========================================================
-   START BATTLE
-========================================================= */
 
 function startBattle(){
-
     resetBattleState();
-
     showScreen("screen-battle");
-
     updateHUD();
-
-    /*
-       Level 3 tutorial:
-       It appears ONLY when entering Level 3
-       for the first time.
-    */
-
-    if(
-        currentLevelIdx===2 &&
-        !tutorialShownLevel3
-    ){
-
+    if(currentLevelIdx===2 && !tutorialShownLevel3){
         battlePaused=true;
-
-        setTimeout(()=>{
-            showTutorial();
-        },350);
-
+        setTimeout(()=>{showTutorial();},350);
     }
-
 }
-
-
-/* =========================================================
-   TUTORIAL
-========================================================= */
 
 function showTutorial(){
-
-    const overlay=
-        document.getElementById(
-            "tutorial-overlay"
-        );
-
-    overlay.classList.add("show");
-
+    document.getElementById("tutorial-overlay").classList.add("show");
     positionTutorialArrow();
-
 }
-
-
-/* =========================================================
-   POSITION TUTORIAL ARROW
-========================================================= */
 
 function positionTutorialArrow(){
-
-    const arrow=
-        document.getElementById(
-            "tutorial-arrow"
-        );
-
-    const button=
-        document.getElementById(
-            "super-ability-btn"
-        );
-
+    const arrow=document.getElementById("tutorial-arrow");
+    const button=document.getElementById("super-ability-btn");
     if(!arrow || !button) return;
-
-    const rect=
-        button.getBoundingClientRect();
-
-    arrow.style.left=
-        `${rect.left + rect.width/2 - 55}px`;
-
-    arrow.style.top=
-        `${Math.max(10,rect.top - 125)}px`;
-
+    const rect=button.getBoundingClientRect();
+    arrow.style.left=`${rect.left + rect.width/2 - 55}px`;
+    arrow.style.top=`${Math.max(10,rect.top - 125)}px`;
 }
-
-
-/* =========================================================
-   CLOSE TUTORIAL
-========================================================= */
 
 function closeTutorial(){
-
     if(tutorialClosing) return;
-
     tutorialClosing=true;
-
-    const overlay=
-        document.getElementById(
-            "tutorial-overlay"
-        );
-
-    overlay.style.transition=
-        "opacity .35s ease";
-
-    overlay.style.opacity="0";
-
+    const overlay=document.getElementById("tutorial-overlay");
+    overlay.style.transition="opacity .35s ease"; overlay.style.opacity="0";
     setTimeout(()=>{
-
-        overlay.classList.remove("show");
-
-        overlay.style.opacity="";
-
-        overlay.style.transition="";
-
-        tutorialShownLevel3=true;
-
-        tutorialClosing=false;
-
-        battlePaused=false;
-
-        currentTurn=0;
-
-        updateHUD();
-
+        overlay.classList.remove("show"); overlay.style.opacity=""; overlay.style.transition="";
+        tutorialShownLevel3=true; localStorage.setItem("epica_level3_tutorial_seen","1");
+        tutorialClosing=false; battlePaused=false; currentTurn=0; updateHUD();
     },350);
-
 }
-
-
-/* =========================================================
-   WEAPON SELECT
-========================================================= */
 
 function selectWeaponFromGround(index){
-
-    if(
-        currentTurn!==0 ||
-        flyingProjectile ||
-        gameOver ||
-        battlePaused
-    ) return;
-
+    if(currentTurn!==0||flyingProjectile||gameOver||battlePaused) return;
     const player=players[0];
-
-    const selected=
-        player.weapons[index];
-
+    const selected=player.weapons[index];
     if(!selected) return;
-
-    /*
-       If another non-infinite weapon is loaded,
-       return it to inventory.
-    */
-
-    if(
-        loadedWeapon &&
-        !loadedWeapon.infinite
-    ){
-
-        player.weapons.push(
-            loadedWeapon
-        );
-
-    }
-
-    if(selected.infinite){
-
-        loadedWeapon={
-            ...selected
-        };
-
-    }else{
-
-        loadedWeapon=
-            player.weapons.splice(
-                index,
-                1
-            )[0];
-
-    }
-
-    catapultAnim.pulling=1;
-
-    players[0].attackAnim=1;
-
-    setTimeout(()=>{
-
-        if(!gameOver && loadedWeapon){
-
-            fireCatapultAnimation();
-
-        }
-
-    },260);
-
+    if(loadedWeapon && !loadedWeapon.infinite){player.weapons.push(loadedWeapon);}
+    if(selected.infinite){loadedWeapon={...selected};}
+    else{loadedWeapon=player.weapons.splice(index,1)[0];}
+    catapultAnim.pulling=1; players[0].attackAnim=1;
+    setTimeout(()=>{if(!gameOver && loadedWeapon){fireCatapultAnimation();}},260);
     updateHUD();
-
 }
-
-
-/* =========================================================
-   FIRE
-========================================================= */
 
 function fireCatapultAnimation(){
-
-    if(
-        !loadedWeapon ||
-        flyingProjectile ||
-        gameOver
-    ) return;
-
-    catapultAnim.pulling=0;
-
-    catapultAnim.releaseKick=1;
-
-    const weapon=
-        loadedWeapon;
-
-    loadedWeapon=null;
-
-    launchProjectile(
-        players[0],
-        players[1],
-        weapon
-    );
-
+    if(!loadedWeapon || flyingProjectile || gameOver) return;
+    catapultAnim.pulling=0; catapultAnim.releaseKick=1;
+    const weapon=loadedWeapon; loadedWeapon=null;
+    launchProjectile(players[0],players[1],weapon);
     updateHUD();
-
 }
 
-
-/* =========================================================
-   PROJECTILE
-========================================================= */
-
-function launchProjectile(
-    shooter,
-    target,
-    weapon
-){
-
+function launchProjectile(shooter,target,weapon){
     flyingProjectile={
-
-        startX:getCharacterX(shooter),
-
-        startY:470,
-
-        targetX:getCharacterX(target),
-
-        targetY:470,
-
-        type:weapon.id,
-
-        damage:weapon.damage,
-
-        shooter,
-
-        target,
-
-        progress:0,
-
-        speed:
-            weapon.id==="fist"
-            ? .020
-            : .017,
-
-        rotation:0
-
+        startX:getCharacterX(shooter), startY:470,
+        targetX:getCharacterX(target), targetY:470,
+        type:weapon.id, damage:weapon.damage, shooter, target,
+        progress:0, speed:weapon.id==="fist"?.012:weapon.id==="axe"||weapon.id==="titanAxe"?.0095:.0105,
+        rotation:0, wind:currentLevelIdx===3?1:0
     };
-
-    spawnMuzzleEffect(
-        flyingProjectile.startX,
-        flyingProjectile.startY
-    );
-
 }
-
-
-/* =========================================================
-   SUPER ABILITY
-========================================================= */
 
 function useSuperAbility(){
-
-    if(
-        currentLevelIdx<2 ||
-        superCooldownCurrent<superCooldownMax ||
-        currentTurn!==0 ||
-        flyingProjectile ||
-        gameOver ||
-        battlePaused
-    ) return;
-
-    superCooldownCurrent=0;
-
+    if(currentLevelIdx<2||currentTurn!==0||flyingProjectile||gameOver||battlePaused) return;
+    const cost=35;
+    if(!spendEnergy(cost)){showCombatToast(t("insufficient"),"#f87171");return;}
     const enemy=players[1];
-
-    const damage=35;
-
-    /*
-       Lightning animation
-    */
-
+    const weapon={id:"super",name:"Energy Lightning",damage:35};
     createLightningStrike(getCharacterX(enemy));
-
-    flashEffectTimer=18;
-
-    screenShake=18;
-
-    /*
-       Damage + Overkill
-    */
-
-    if(damage>enemy.hp){
-
-        const excess=
-            damage-enemy.hp;
-
-        enemy.hp=0;
-
-        players[0].hp=
-            Math.max(
-                0,
-                players[0].hp-excess
-            );
-
-        enemy.hitPopups.push({
-            text:`⚡ -${enemy.hp+excess} SUPER`,
-            alpha:1,
-            yOffset:0
-        });
-
-        players[0].hitPopups.push({
-            text:`⚠️ ${t("backlash")} -${excess}`,
-            alpha:1,
-            yOffset:-30
-        });
-
-    }else{
-
-        enemy.hp-=damage;
-
-        enemy.hitPopups.push({
-            text:`⚡ -${damage} SUPER!`,
-            alpha:1,
-            yOffset:0
-        });
-
-    }
-
-    enemy.squashX=1.5;
-
-    enemy.squashY=.6;
-
+    flashEffectTimer=14;
+    resolveDamage(players[0],enemy,weapon,{damage:35});
     checkGameOver();
-
-    if(!gameOver){
-
-        switchTurn();
-
-    }
-
+    if(!gameOver) switchTurn();
     updateHUD();
-
 }
-
-
-/* =========================================================
-   LIGHTNING
-========================================================= */
 
 function createLightningStrike(x){
-
-    const segments=[];
-
-    let currentX=x;
-
-    let currentY=20;
-
-    segments.push({
-        x:currentX,
-        y:currentY
-    });
-
+    const segments=[]; let currentX=x; let currentY=20;
+    segments.push({x:currentX,y:currentY});
     for(let i=0;i<9;i++){
-
-        currentX+=
-            (Math.random()-.5)*55;
-
-        currentY+=
-            45+Math.random()*35;
-
-        segments.push({
-            x:currentX,
-            y:currentY
-        });
-
+        currentX+=(Math.random()-.5)*55; currentY+=45+Math.random()*35;
+        segments.push({x:currentX,y:currentY});
     }
-
-    lightningBolts.push({
-        segments,
-        alpha:1,
-        life:28,
-        x
-    });
-
+    lightningBolts.push({segments,alpha:1,life:28,x});
     for(let i=0;i<55;i++){
-
-        particles.push({
-
-            x:x+(Math.random()-.5)*70,
-
-            y:420+Math.random()*80,
-
-            vx:(Math.random()-.5)*15,
-
-            vy:-Math.random()*10,
-
-            radius:Math.random()*4+1,
-
-            color:
-                Math.random()>.5
-                ? "#60a5fa"
-                : "#ffffff",
-
-            alpha:1,
-
-            decay:.025
-
-        });
-
+        particles.push({x:x+(Math.random()-.5)*70,y:420+Math.random()*80,vx:(Math.random()-.5)*15,vy:-Math.random()*10,radius:Math.random()*4+1,color:Math.random()>.5?"#60a5fa":"#ffffff",alpha:1,decay:.025});
     }
-
 }
-
-
-/* =========================================================
-   HIT
-========================================================= */
-
-function handleHit(projectile){
-
-    const target=
-        projectile.target;
-
-    const shooter=
-        projectile.shooter;
-
-    const dmg=
-        projectile.damage;
-
-    const originalHp=
-        target.hp;
-
-    let excessDamage=0;
-
-    if(dmg>target.hp){
-
-        excessDamage=
-            dmg-target.hp;
-
-        target.hp=0;
-
-    }else{
-
-        target.hp-=dmg;
-
-    }
-
-    const actualDamage=
-        Math.min(
-            dmg,
-            originalHp
-        );
-
-    target.squashX=1.35;
-
-    target.squashY=.65;
-
-    target.hitPopups.push({
-
-        text:`-${actualDamage}`,
-
-        alpha:1,
-
-        yOffset:0
-
-    });
-
-    /*
-       OVERKILL
-    */
-
-    if(excessDamage>0){
-
-        shooter.hp=
-            Math.max(
-                0,
-                shooter.hp-excessDamage
-            );
-
-        shooter.squashX=1.25;
-
-        shooter.squashY=.75;
-
-        shooter.hitPopups.push({
-
-            text:`⚠️ ${t("backlash")} -${excessDamage}`,
-
-            alpha:1,
-
-            yOffset:-30
-
-        });
-
-    }
-
-    createImpact(
-        getCharacterX(target),
-        470,
-        projectile.type
-    );
-
-    screenShake=
-        Math.min(
-            18,
-            6+excessDamage*.25
-        );
-
-    checkGameOver();
-
-    if(!gameOver){
-
-        switchTurn();
-
-    }
-
-    updateHUD();
-
-}
-
-
-/* =========================================================
-   TURN SYSTEM
-========================================================= */
 
 function switchTurn(){
-
-    currentTurn=
-        currentTurn===0
-        ? 1
-        : 0;
-
-    if(
-        currentTurn===0 &&
-        superCooldownCurrent<superCooldownMax
-    ){
-
-        superCooldownCurrent++;
-
-    }
-
+    currentTurn=currentTurn===0?1:0;
     updateHUD();
-
-    if(
-        currentTurn===1 &&
-        !gameOver
-    ){
-
-        setTimeout(()=>{
-
-            if(
-                currentTurn===1 &&
-                !gameOver &&
-                !battlePaused &&
-                !flyingProjectile
-            ){
-
-                botTurn();
-
-            }
-
-        },1050);
-
+    if(currentTurn===1&&!gameOver){
+        setTimeout(()=>{if(currentTurn===1&&!gameOver&&!battlePaused&&!flyingProjectile) botTurn();},1050);
     }
-
 }
-
-
-/* =========================================================
-   BOT
-========================================================= */
 
 function botTurn(){
-
-    if(
-        gameOver ||
-        battlePaused ||
-        currentTurn!==1 ||
-        flyingProjectile
-    ) return;
-
+    if(gameOver||battlePaused||currentTurn!==1||flyingProjectile) return;
     const bot=players[1];
-
-    const config=
-        levelConfigs[currentLevelIdx];
-
-    if(bot.weapons.length===0){
-
-        bot.weapons.push({
-            ...config.enemyWeapons[0]
-        });
-
+    const config=levelConfigs[currentLevelIdx];
+    if(bot.weapons.length===0) bot.weapons.push({...config.enemyWeapons[0]});
+    const player=players[0]; const hpGap=player.hp;
+    if(config.enemyType==="boss" && bot.shield<bot.maxShield && bot.hp<bot.maxHp*.65){
+        bot.shield=Math.min(bot.maxShield,bot.shield+4);
+        bot.hitPopups.push({text:`+4 ${t("shield")}`,alpha:1,yOffset:0,kind:"shield",size:14});
     }
-
-    let chosenWeapon;
-
-    if(config.aiType==="smart" || bot.weapons.length>1){
-
-        /*
-           Smart AI considers overkill.
-        */
-
-        const usable=
-            bot.weapons
-                .slice()
-                .sort(
-                    (a,b)=>
-                        a.damage-b.damage
-                );
-
-        chosenWeapon=
-            usable.find(
-                w=>w.damage<=players[0].hp
-            ) ||
-            usable[usable.length-1];
-
-    }else{
-
-        chosenWeapon=
-            bot.weapons[
-                Math.floor(
-                    Math.random()*
-                    bot.weapons.length
-                )
-            ];
-
+    if(currentLevelIdx>=4 && bot.hp<bot.maxHp*.35 && Math.random()<.28){
+        bot.defending=true; bot.hitPopups.push({text:t("defended"),alpha:1,yOffset:0,kind:"shield",size:15});
+        switchTurn(); updateHUD(); return;
     }
-
-    const index=
-        bot.weapons.indexOf(
-            chosenWeapon
-        );
-
-    if(
-        !chosenWeapon.infinite &&
-        index>=0
-    ){
-
-        bot.weapons.splice(index,1);
-
+    if(currentLevelIdx>=2 && bot.aiEnergy>=30 && Math.random()<.20){
+        bot.aiEnergy-=30;
+        createLightningStrike(getCharacterX(player));
+        resolveDamage(bot,player,{id:"super",damage:30,name:"Energy Strike"},{damage:30});
+        checkGameOver(); if(!gameOver) switchTurn(); updateHUD(); return;
     }
-
+    const usable=bot.weapons.slice().sort((a,b)=>a.damage-b.damage);
+    let chosenWeapon=usable.find(w=>w.damage<=hpGap) || usable[0];
+    if(hpGap<=12) chosenWeapon=usable.find(w=>w.damage>=hpGap && w.damage<=hpGap+5) || chosenWeapon;
+    if(currentLevelIdx===3 && bot.hp<bot.maxHp*.45) chosenWeapon=usable[usable.length-1];
+    const index=bot.weapons.indexOf(chosenWeapon);
+    if(!chosenWeapon.infinite && index>=0) bot.weapons.splice(index,1);
     bot.attackAnim=1;
-
-    launchProjectile(
-        bot,
-        players[0],
-        chosenWeapon
-    );
-
+    launchProjectile(bot,player,chosenWeapon);
     updateHUD();
-
 }
-
-
-/* =========================================================
-   GAME OVER
-========================================================= */
 
 function checkGameOver(){
-
-    const nextBtn=
-        document.getElementById(
-            "next-level-btn"
-        );
-
-    const retryBtn=
-        document.getElementById(
-            "retry-level-btn"
-        );
-
-    if(
-        players[0].hp<=0 &&
-        players[1].hp<=0
-    ){
-
-        gameOver=true;
-
-        nextBtn.style.display="none";
-
-        retryBtn.style.display="inline-block";
-
-        showGameOver("💀",t("bothDefeated"));
-
-        return;
-
+    const nextBtn=document.getElementById("next-level-btn");
+    const retryBtn=document.getElementById("retry-level-btn");
+    if(players[0].hp<=0 && players[1].hp<=0){
+        gameOver=true; nextBtn.style.display="none"; retryBtn.style.display="inline-block";
+        showGameOver("💀",t("bothDefeated")); return;
     }
-
     if(players[1].hp<=0){
-
-        gameOver=true;
-
-        retryBtn.style.display="none";
-
-        if(
-            currentLevelIdx+1<
-            levelConfigs.length
-        ){
-
-            levelConfigs[
-                currentLevelIdx+1
-            ].unlocked=true;
-
-            nextBtn.style.display=
-                "inline-block";
-
-        }else{
-
-            nextBtn.style.display="none";
-
-        }
-
-        showGameOver("🏆",t("levelComplete"));
-
-        return;
-
+        gameOver=true; retryBtn.style.display="none";
+        if(currentLevelIdx+1<levelConfigs.length){
+            levelConfigs[currentLevelIdx+1].unlocked=true;
+            nextBtn.style.display="inline-block";
+        }else{nextBtn.style.display="none";}
+        showGameOver("🏆",t("levelComplete")); return;
     }
-
     if(players[0].hp<=0){
-
-        gameOver=true;
-
-        nextBtn.style.display="none";
-
-        retryBtn.style.display="inline-block";
-
+        gameOver=true; nextBtn.style.display="none"; retryBtn.style.display="inline-block";
         showGameOver("💀",t("defeat"));
-
     }
-
 }
-
-
-/* =========================================================
-   GAME OVER UI
-========================================================= */
 
 function showGameOver(icon,title){
-
-    document.getElementById(
-        "overlay-icon"
-    ).innerText=icon;
-
-    document.getElementById(
-        "overlay-title"
-    ).innerText=title;
-
-    setTimeout(()=>{
-
-        if(gameOver){
-
-            document
-                .getElementById(
-                    "game-over-overlay"
-                )
-                .classList.add("show");
-
-        }
-
-    },500);
-
+    document.getElementById("overlay-icon").innerText=icon;
+    document.getElementById("overlay-title").innerText=title;
+    setTimeout(()=>{if(gameOver){document.getElementById("game-over-overlay").classList.add("show");}},500);
 }
 
-
-function hideGameOver(){
-
-    document
-        .getElementById(
-            "game-over-overlay"
-        )
-        .classList.remove("show");
-
-}
-
-
-/* =========================================================
-   RETRY
-========================================================= */
-
-function retryLevel(){
-
-    hideGameOver();
-
-    selectLevel(currentLevelIdx);
-
-}
-
-
-/* =========================================================
-   NEXT LEVEL
-========================================================= */
-
-function nextLevel(){
-
-    hideGameOver();
-
-    if(
-        currentLevelIdx+1<
-        levelConfigs.length
-    ){
-
-        selectLevel(
-            currentLevelIdx+1
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   HUD
-========================================================= */
+function hideGameOver(){document.getElementById("game-over-overlay").classList.remove("show");}
+function retryLevel(){hideGameOver();selectLevel(currentLevelIdx);}
+function nextLevel(){hideGameOver();if(currentLevelIdx+1<levelConfigs.length){selectLevel(currentLevelIdx+1);}}
 
 function updateHUD(){
-
-    const tray=
-        document.getElementById(
-            "ground-weapons-tray"
-        );
-
-    tray.innerHTML="";
-
-    players[0].weapons.forEach(
-        (weapon,index)=>{
-
-            const button=
-                document.createElement(
-                    "button"
-                );
-
-            button.className=
-                "ground-weapon-card";
-
-            button.innerHTML=`
-
-                <div style="
-                    font-size:12px;
-                    font-weight:800;">
-                    ${weapon.icon || "⚔️"}
-                    ${weaponLabel(weapon)}
-                </div>
-
-                <div style="
-                    color:#94a3b8;
-                    font-size:10px;
-                    margin-top:3px;">
-                    ${t("damage")} ${weapon.damage}
-                </div>
-
-            `;
-
-            button.onclick=()=>{
-                selectWeaponFromGround(index);
-            };
-
-            if(
-                currentTurn!==0 ||
-                flyingProjectile ||
-                gameOver ||
-                battlePaused
-            ){
-
-                button.disabled=true;
-
-            }
-
-            tray.appendChild(button);
-
-        }
-    );
-
-
-    /*
-       Enemy weapons
-    */
-
-    const enemyList=
-        document.getElementById(
-            "enemy-weapons-list"
-        );
-
-    enemyList.innerHTML=
-        players[1].weapons.length
-        ? players[1].weapons
-            .map(
-                w=>
-                    `• ${weaponLabel(w)}
-                    (${w.damage})`
-            )
-            .join("<br>")
-        : "—";
-
-
-    /*
-       Turn indicator
-    */
-
-    const indicator=
-        document.getElementById(
-            "turn-indicator"
-        );
-
-    indicator.classList.toggle(
-        "enemy",
-        currentTurn===1
-    );
-
-    if(!gameOver){
-
-        indicator.innerText=
-            currentTurn===0
-            ? t("yourTurn")
-            : t("enemyTurn");
-
-    }
-
-
-    /*
-       Super button
-    */
-
-    const superBtn=
-        document.getElementById(
-            "super-ability-btn"
-        );
-
-    if(currentLevelIdx>=2){
-
-        superBtn.style.display=
-            "inline-block";
-
-        const ready=
-            superCooldownCurrent>=
-            superCooldownMax;
-
-        superBtn.classList.toggle(
-            "ready",
-            ready
-        );
-
-        if(ready){
-
-            superBtn.innerText=
-                "⚡ ENERGY LIGHTNING • 100%";
-
-            superBtn.disabled=
-                currentTurn!==0 ||
-                flyingProjectile ||
-                gameOver ||
-                battlePaused;
-
-        }else{
-
-            const percent=
-                Math.floor(
-                    (
-                        superCooldownCurrent/
-                        superCooldownMax
-                    )*100
-                );
-
-            superBtn.innerText=
-                `${t("charge")} • ${percent}%`;
-
-            superBtn.disabled=true;
-
-        }
-
-    }else{
-
-        superBtn.style.display="none";
-
-    }
-
+    const tray=document.getElementById("ground-weapons-tray"); tray.innerHTML="";
+    players[0].weapons.forEach((weapon,index)=>{
+        const button=document.createElement("button"); button.className="ground-weapon-card";
+        const role=weaponProfile(weapon).role;
+        button.innerHTML=`<div style="font-size:12px;font-weight:800;">${weapon.icon||"⚔️"} ${weaponLabel(weapon)}</div><div style="color:#94a3b8;font-size:10px;margin-top:3px;">${t("damage")} ${weapon.damage}</div><div style="color:#60a5fa;font-size:9px;margin-top:2px;">${role}</div>`;
+        button.onclick=()=>selectWeaponFromGround(index);
+        button.disabled=currentTurn!==0||flyingProjectile||gameOver||battlePaused; tray.appendChild(button);
+    });
+    const enemyList=document.getElementById("enemy-weapons-list");
+    enemyList.innerHTML=players[1].weapons.length?players[1].weapons.map(w=>`• ${weaponLabel(w)} (${w.damage})`).join("<br>"):"—";
+    const indicator=document.getElementById("turn-indicator"); indicator.classList.toggle("enemy",currentTurn===1);
+    if(!gameOver) indicator.innerText=currentTurn===0?t("yourTurn"):t("enemyTurn");
+    const fill=document.getElementById("energy-fill"); const value=document.getElementById("energy-value");
+    const percent=clamp(energy/maxEnergy,0,1)*100; fill.style.width=percent+"%"; value.innerText=`${Math.floor(energy)} / ${maxEnergy}`;
+    document.getElementById("energy-label").innerText="⚡ "+t("energy");
+    const defend=document.getElementById("defend-btn"), charge=document.getElementById("charge-btn");
+    const canAct=currentTurn===0&&!flyingProjectile&&!gameOver&&!battlePaused;
+    defend.disabled=!canAct; charge.disabled=!canAct;
+    const superBtn=document.getElementById("super-input-btn") || document.getElementById("super-ability-btn");
+    if(superBtn && currentLevelIdx>=2){
+        superBtn.style.display="inline-block"; const ready=energy>=35; superBtn.classList.toggle("ready",ready);
+        superBtn.innerText=ready?t("superReady"):t("charge")+` • ${Math.floor(energy/35*100)}%`;
+        superBtn.disabled=!canAct||!ready;
+    }else if(superBtn){superBtn.style.display="none";}
 }
-
-
-/* =========================================================
-   GAME LOOP
-========================================================= */
 
 function startGameLoop(){
-
     if(gameLoopRunning) return;
-
     gameLoopRunning=true;
-
-    animationFrameId=
-        requestAnimationFrame(gameLoop);
-
+    animationFrameId=requestAnimationFrame(gameLoop);
 }
-
-
-function stopGameLoop(){
-
-    if(!gameLoopRunning) return;
-
-    gameLoopRunning=false;
-
-    cancelAnimationFrame(
-        animationFrameId
-    );
-
-    animationFrameId=null;
-
-}
-
-
-/* =========================================================
-   MAIN LOOP
-========================================================= */
 
 function gameLoop(time){
-
     if(!gameLoopRunning) return;
-
-    animationFrameId=
-        requestAnimationFrame(gameLoop);
-
-    if(
-        !document
-            .getElementById("screen-battle")
-            .classList.contains("active-screen")
-    ){
-
-        return;
-
-    }
-
-    const rect=
-        canvas.getBoundingClientRect();
-
-    const width=rect.width;
-
-    const height=rect.height;
-
-    ctx.setTransform(
-        1,0,0,1,0,0
-    );
-
-    ctx.clearRect(
-        0,
-        0,
-        width,
-        height
-    );
-
-    // Fit the entire battlefield into the viewport. On narrow screens
-    // the virtual world is intentionally narrower so both fighters stay visible.
-    const scale=Math.min(
-        width/battleWorldW,
-        height/battleWorldH
-    );
-
-    const offsetX=(width-battleWorldW*scale)/2;
-    const offsetY=(height-battleWorldH*scale)/2;
+    animationFrameId=requestAnimationFrame(gameLoop);
+    if(!document.getElementById("screen-battle").classList.contains("active-screen")){return;}
+    const rect=canvas.getBoundingClientRect(); const width=rect.width; const height=rect.height;
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,width,height);
+    const scale=Math.min(width/battleWorldW,height/battleWorldH);
+    const offsetX=(width-battleWorldW*scale)/2; const offsetY=(height-battleWorldH*scale)/2;
     battleScale=scale;
-
-    ctx.save();
-    ctx.translate(offsetX,offsetY);
-    ctx.scale(scale,scale);
-
-    drawBattleBackground(
-        time
-    );
-
-    updateAnimations();
-
-    drawBattlefield(
-        time
-    );
-
-    drawProjectiles();
-
-    drawEffects();
-
-    drawParticles();
-
-    drawPopups();
-
-    drawLightning();
-
-    drawFlash();
-
+    ctx.save(); ctx.translate(offsetX+cameraShakeX,offsetY+cameraShakeY); ctx.scale(scale,scale);
+    drawBattleBackground(time);
+    if(hitStopTimer>0){hitStopTimer--;}else{updateAnimations();}
+    drawBattlefield(time);
+    drawProjectiles(); drawEffects(); drawParticles(); drawPopups(); drawLightning(); drawFlash();
     ctx.restore();
-
 }
-
-
-/* =========================================================
-   BACKGROUND
-========================================================= */
 
 function drawBattleBackground(time){
-
-    const config=
-        levelConfigs[currentLevelIdx];
-
-    const pulse=
-        Math.sin(time*.0005)*.04;
-
-    const sky=
-        ctx.createLinearGradient(
-            0,0,0,540
-        );
-
-    sky.addColorStop(
-        0,
-        config.sky[0]
-    );
-
-    sky.addColorStop(
-        1,
-        config.sky[1]
-    );
-
-    ctx.fillStyle=sky;
-
-    ctx.fillRect(
-        0,
-        0,
-        battleWorldW,
-        540
-    );
-
-
-    /*
-       Moon / sun
-    */
-
-    ctx.save();
-
-    ctx.globalAlpha=.75;
-
-    const celestialX=
-        battleWorldW*.5+
-        Math.sin(time*.00008)*180;
-
-    const celestialY=
-        currentLevelIdx===1
-        ? 170
-        : 125;
-
-    const glow=
-        ctx.createRadialGradient(
-            celestialX,
-            celestialY,
-            10,
-            celestialX,
-            celestialY,
-            130
-        );
-
-    glow.addColorStop(
-        0,
-        "rgba(255,245,200,.55)"
-    );
-
-    glow.addColorStop(
-        1,
-        "rgba(255,245,200,0)"
-    );
-
-    ctx.fillStyle=glow;
-
-    ctx.beginPath();
-
-    ctx.arc(
-        celestialX,
-        celestialY,
-        130,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-    ctx.fillStyle=
-        currentLevelIdx===1
-        ? "#fed7aa"
-        : "#f8fafc";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        celestialX,
-        celestialY,
-        38,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-    ctx.restore();
-
-
-    /*
-       Stars
-    */
-
-    if(currentLevelIdx!==1){
-
-        for(let i=0;i<65;i++){
-
-            const x=
-                (i*137)%battleWorldW;
-
-            const y=
-                (i*71)%360;
-
-            const twinkle=
-                .4+
-                .4*
-                Math.sin(
-                    time*.002+i
-                );
-
-            ctx.fillStyle=
-                `rgba(255,255,255,${twinkle})`;
-
-            ctx.beginPath();
-
-            ctx.arc(
-                x,
-                y,
-                i%7===0?1.8:1,
-                0,
-                Math.PI*2
-            );
-
-            ctx.fill();
-
-        }
-
-    }
-
-
-    /*
-       Distant mountains
-    */
-
-    drawMountainLayer(
-        "#0b1120",
-        420,
-        70,
-        time*.00002
-    );
-
-    drawMountainLayer(
-        "#111827",
-        470,
-        50,
-        -time*.00003
-    );
-
-
-    /*
-       Ground
-    */
-
-    const ground=
-        ctx.createLinearGradient(
-            0,540,0,700
-        );
-
-    ground.addColorStop(
-        0,
-        config.ground[0]
-    );
-
-    ground.addColorStop(
-        1,
-        config.ground[1]
-    );
-
-    ctx.fillStyle=ground;
-
-    ctx.fillRect(
-        0,
-        540,
-        battleWorldW,
-        160
-    );
-
-
-    /*
-       Ground glow
-    */
-
-    const groundGlow=
-        ctx.createRadialGradient(
-            battleWorldW*.5,
-            530,
-            20,
-            battleWorldW*.5,
-            530,
-            700
-        );
-
-    groundGlow.addColorStop(
-        0,
-        `rgba(251,191,36,${.05+pulse})`
-    );
-
-    groundGlow.addColorStop(
-        1,
-        "rgba(0,0,0,0)"
-    );
-
-    ctx.fillStyle=groundGlow;
-
-    ctx.fillRect(
-        0,
-        430,
-        battleWorldW,
-        270
-    );
-
-
-    /*
-       Ground lines / atmosphere
-    */
-
-    ctx.globalAlpha=.12;
-
-    ctx.strokeStyle="#ffffff";
-
-    for(let y=570;y<700;y+=28){
-
-        ctx.beginPath();
-
-        ctx.moveTo(0,y);
-
-        ctx.lineTo(battleWorldW,y);
-
-        ctx.stroke();
-
-    }
-
-    ctx.globalAlpha=1;
-
+    const config=levelConfigs[currentLevelIdx];
+    const sky=ctx.createLinearGradient(0,0,0,540);
+    sky.addColorStop(0,config.sky[0]); sky.addColorStop(1,config.sky[1]);
+    ctx.fillStyle=sky; ctx.fillRect(0,0,battleWorldW,540);
+    ctx.restore?.();
 }
-
-
-/* =========================================================
-   MOUNTAINS
-========================================================= */
-
-function drawMountainLayer(
-    color,
-    baseY,
-    height,
-    offset
-){
-
-    ctx.fillStyle=color;
-
-    ctx.beginPath();
-
-    ctx.moveTo(0,540);
-
-    for(
-        let x=-200;
-        x<=battleWorldW+200;
-        x+=140
-    ){
-
-        const y=
-            baseY-
-            Math.abs(
-                Math.sin(
-                    x*.006+offset
-                )
-            )*height;
-
-        ctx.lineTo(
-            x,
-            y
-        );
-
-    }
-
-    ctx.lineTo(battleWorldW+200,540);
-
-    ctx.closePath();
-
-    ctx.fill();
-
-}
-
-
-/* =========================================================
-   BATTLEFIELD
-========================================================= */
-
-function getCharacterX(player){
-    return player.id===0 ? player.castleX+145 : player.castleX-145;
-}
-function getCharacterY(){ return 540; }
 
 function drawBattlefield(time){
     drawCastle(players[0],true,time);
     drawCastle(players[1],false,time);
-    drawCharacter(players[0],true,time);
-    drawCharacter(players[1],false,time);
 }
-
-
-/* =========================================================
-   CASTLE
-========================================================= */
-
-function drawCastle(
-    player,
-    isHuman,
-    time
-){
-
-    const x=player.castleX;
-
-    const y=540;
-
-    const scaleX=
-        player.squashX*
-        (isHuman?1:-1);
-
-    const scaleY=
-        player.squashY;
-
-    const idle=
-        Math.sin(
-            time*.002+
-            player.id
-        )*2;
-
-    ctx.save();
-
-    ctx.translate(
-        x,
-        y+idle
-    );
-
-    ctx.scale(
-        scaleX,
-        scaleY
-    );
-
-
-    /*
-       Shadow
-    */
-
-    ctx.save();
-
-    ctx.scale(
-        1/.95,
-        1/.95
-    );
-
-    ctx.fillStyle=
-        "rgba(0,0,0,.45)";
-
-    ctx.beginPath();
-
-    ctx.ellipse(
-        0,
-        3,
-        155,
-        22,
-        0,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-    ctx.restore();
-
-
-    /*
-       Main castle
-    */
-
-    ctx.fillStyle=
-        isHuman
-        ? "#334155"
-        : "#1f2937";
-
-    roundRect(
-        -115,
-        -215,
-        150,
-        215,
-        10
-    );
-
-    ctx.fill();
-
-
-    /*
-       Inner wall
-    */
-
-    ctx.fillStyle=
-        isHuman
-        ? "#1e293b"
-        : "#111827";
-
-    roundRect(
-        -95,
-        -195,
-        110,
-        195,
-        6
-    );
-
-    ctx.fill();
-
-
-    /*
-       Towers
-    */
-
-    drawTower(
-        -115,
-        -235,
-        55,
-        isHuman
-    );
-
-    drawTower(
-        5,
-        -235,
-        55,
-        isHuman
-    );
-
-
-    /*
-       Windows
-    */
-
-    for(let i=0;i<3;i++){
-
-        ctx.fillStyle=
-            isHuman
-            ? "rgba(96,165,250,.65)"
-            : "rgba(248,113,113,.5)";
-
-        roundRect(
-            -72,
-            -145+i*45,
-            24,
-            32,
-            5
-        );
-
-        ctx.fill();
-
-    }
-
-
-    /*
-       Banner
-    */
-
-    ctx.fillStyle=
-        isHuman
-        ? "#2563eb"
-        : "#dc2626";
-
-    ctx.fillRect(
-        -27,
-        -250,
-        5,
-        65
-    );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        -22,
-        -245
-    );
-
-    ctx.lineTo(
-        18,
-        -235
-    );
-
-    ctx.lineTo(
-        -22,
-        -220
-    );
-
-    ctx.closePath();
-
-    ctx.fill();
-
-
-    /*
-       Catapult
-    */
-
-    drawCatapult(
-        player,
-        isHuman
-    );
-
-    drawCastleHealthBar(player,isHuman);
-
-
-    ctx.restore();
-
-}
-
-
-function drawCastleHealthBar(player,isHuman){
-    const maxWidth=190;
-    const ratio=Math.max(0,Math.min(1,player.hp/player.maxHp));
-    const x=-95, y=-282;
-    ctx.save();
-    // Enemy castle is mirrored, so counter-flip the HUD text/bar.
-    ctx.scale(isHuman?1:-1,1);
-    ctx.fillStyle="rgba(2,6,12,.92)";
-    roundRect(x-5,y-8,maxWidth+10,39,10); ctx.fill();
-    ctx.textAlign="center";
-    ctx.font="800 14px Inter";
-    ctx.fillStyle="#f8fafc";
-    ctx.fillText(`${player.name}  •  ${Math.ceil(player.hp)} / ${player.maxHp}`,0,y+6);
-    ctx.fillStyle="#111827";
-    roundRect(x,y+11,maxWidth,11,5); ctx.fill();
-    if(ratio>0){
-        ctx.fillStyle=ratio>.5 ? (isHuman?"#22c55e":"#4ade80") : ratio>.25 ? "#f59e0b" : "#ef4444";
-        roundRect(x,y+11,Math.max(2,maxWidth*ratio),11,5); ctx.fill();
-    }
-    ctx.strokeStyle=isHuman?"rgba(96,165,250,.65)":"rgba(248,113,113,.65)";
-    ctx.lineWidth=1.5;
-    roundRect(x-1,y+10,maxWidth+2,13,6); ctx.stroke();
-    ctx.restore();
-}
-
-
-/* =========================================================
-   TOWER
-========================================================= */
-
-function drawTower(
-    x,
-    y,
-    width,
-    isHuman
-){
-
-    ctx.fillStyle=
-        isHuman
-        ? "#475569"
-        : "#374151";
-
-    roundRect(
-        x,
-        y,
-        width,
-        235,
-        7
-    );
-
-    ctx.fill();
-
-    for(let i=0;i<4;i++){
-
-        ctx.fillStyle=
-            isHuman
-            ? "#64748b"
-            : "#4b5563";
-
-        ctx.fillRect(
-            x+i*17,
-            y-12,
-            12,
-            15
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   CATAPULT
-========================================================= */
-
-function drawCatapult(
-    player,
-    isHuman
-){
-
-    const kick=
-        player.id===0
-        ? catapultAnim.releaseKick
-        : 0;
-
-    ctx.save();
-
-    ctx.translate(
-        75+kick*8,
-        0
-    );
-
-    /*
-       Wheels
-    */
-
-    ctx.fillStyle="#111827";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        0,
-        -2,
-        14,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-    ctx.beginPath();
-
-    ctx.arc(
-        42,
-        -2,
-        14,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-
-    /*
-       Wood frame
-    */
-
-    ctx.strokeStyle="#78350f";
-
-    ctx.lineWidth=9;
-
-    ctx.lineCap="round";
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        -15,
-        0
-    );
-
-    ctx.lineTo(
-        20,
-        -72
-    );
-
-    ctx.lineTo(
-        50,
-        0
-    );
-
-    ctx.stroke();
-
-
-    /*
-       Arm
-    */
-
-    const pull=
-        player.id===0
-        ? catapultAnim.pulling
-        : 0;
-
-    ctx.strokeStyle="#a16207";
-
-    ctx.lineWidth=8;
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        20,
-        -65
-    );
-
-    ctx.lineTo(
-        20+pull*25,
-        -120+pull*15
-    );
-
-    ctx.stroke();
-
-
-    /*
-       Loaded weapon
-    */
-
-    if(
-        isHuman &&
-        loadedWeapon
-    ){
-
-        drawWeapon(
-            loadedWeapon.id,
-            20+pull*25,
-            -130+pull*15,
-            32,
-            -0.2
-        );
-
-    }
-
-    ctx.restore();
-
-}
-
-
-/* =========================================================
-   CHARACTER
-========================================================= */
-
-function drawCharacter(
-    player,
-    isHuman,
-    time
-){
-    const x=getCharacterX(player);
-    const groundY=getCharacterY();
-    const attack=player.attackAnim;
-    const bob=Math.sin(time*.005+player.id)*2;
-    const facing=isHuman?1:-1;
-    ctx.save();
-    ctx.translate(x,groundY+bob);
-    ctx.scale(facing*player.squashX,player.squashY);
-    ctx.fillStyle="rgba(0,0,0,.38)";
-    ctx.beginPath();ctx.ellipse(0,2,42,9,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=isHuman?"#1d4ed8":"#991b1b";
-    ctx.beginPath();ctx.moveTo(-18,-105);ctx.quadraticCurveTo(-58,-82,-42,-35);ctx.lineTo(5,-45);ctx.closePath();ctx.fill();
-    ctx.strokeStyle="#0f172a";ctx.lineWidth=10;ctx.lineCap="round";
-    ctx.beginPath();ctx.moveTo(-10,-30);ctx.lineTo(-15,-2);ctx.moveTo(9,-30);ctx.lineTo(15,-2);ctx.stroke();
-    ctx.strokeStyle="#334155";ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-19,0);ctx.lineTo(-5,0);ctx.moveTo(5,0);ctx.lineTo(20,0);ctx.stroke();
-    const bodyGrad=ctx.createLinearGradient(-25,-85,25,-25);
-    bodyGrad.addColorStop(0,isHuman?"#e2e8f0":"#94a3b8");bodyGrad.addColorStop(.55,isHuman?"#64748b":"#475569");bodyGrad.addColorStop(1,"#1e293b");
-    ctx.fillStyle=bodyGrad;roundRect(-24,-83,48,58,12);ctx.fill();
-    ctx.fillStyle=isHuman?"#60a5fa":"#f87171";ctx.beginPath();ctx.moveTo(0,-72);ctx.lineTo(10,-62);ctx.lineTo(0,-48);ctx.lineTo(-10,-62);ctx.closePath();ctx.fill();
-    ctx.fillStyle="#c58f6a";roundRect(-8,-94,16,12,5);ctx.fill();
-    ctx.fillStyle=isHuman?"#e7b68e":"#c99673";ctx.beginPath();ctx.arc(0,-112,24,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=isHuman?"#475569":"#374151";ctx.beginPath();ctx.arc(0,-117,26,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(-25,-118,50,9);
-    ctx.fillStyle=isHuman?"#2563eb":"#dc2626";ctx.beginPath();ctx.moveTo(-4,-140);ctx.lineTo(8,-140);ctx.lineTo(2,-153);ctx.closePath();ctx.fill();
-    ctx.fillStyle="#020617";roundRect(-21,-119,42,7,3);ctx.fill();ctx.fillStyle=isHuman?"#93c5fd":"#fca5a5";ctx.fillRect(10,-117,5,2);
-    ctx.strokeStyle=isHuman?"#94a3b8":"#64748b";ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(-19,-67);ctx.lineTo(-34,-45);ctx.stroke();
-    ctx.save();ctx.translate(19,-67);ctx.rotate(attack>0?-0.95:-0.25);ctx.strokeStyle="#cbd5e1";ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(28,24);ctx.stroke();ctx.fillStyle="#e2e8f0";roundRect(22,17,18,16,5);ctx.fill();ctx.restore();
-    ctx.scale(facing,1);ctx.font="800 13px Inter";ctx.textAlign="center";ctx.fillStyle=isHuman?"#dbeafe":"#fee2e2";ctx.shadowBlur=8;ctx.shadowColor=isHuman?"#2563eb":"#dc2626";ctx.fillText(player.name,0,-162);
-    ctx.restore();
-}
-
-
-/* =========================================================
-   WEAPONS
-========================================================= */
-
-function drawWeapon(
-    type,
-    x,
-    y,
-    size,
-    angle
-){
-
-    ctx.save();
-
-    ctx.translate(x,y);
-
-    ctx.rotate(angle);
-
-
-    /*
-       Glow
-    */
-
-    if(
-        type==="sword" ||
-        type==="axe"
-    ){
-
-        ctx.shadowBlur=12;
-
-        ctx.shadowColor=
-            type==="sword"
-            ? "#bfdbfe"
-            : "#ef4444";
-
-    }
-
-
-    if(type==="fist"){
-        // Stylized armored gauntlet: clearly reads as a fist instead of a projectile blob.
-        ctx.shadowBlur=18;
-        ctx.shadowColor="#fb7185";
-
-        // Wrist / cuff
-        ctx.fillStyle="#334155";
-        roundRect(-size*.18,size*.18,size*.36,size*.38,size*.07);
-        ctx.fill();
-
-        // Palm
-        const palmGrad=ctx.createLinearGradient(-size*.45,-size*.35,size*.45,size*.45);
-        palmGrad.addColorStop(0,"#f8fafc");
-        palmGrad.addColorStop(.35,"#cbd5e1");
-        palmGrad.addColorStop(1,"#64748b");
-        ctx.fillStyle=palmGrad;
-        roundRect(-size*.40,-size*.20,size*.72,size*.55,size*.13);
-        ctx.fill();
-
-        // Four armored knuckles
-        ctx.fillStyle="#e2e8f0";
-        for(let i=0;i<4;i++){
-            roundRect(
-                -size*.38+i*size*.19,
-                -size*.42,
-                size*.16,
-                size*.27,
-                size*.055
-            );
-            ctx.fill();
-        }
-
-        // Palm plate
-        ctx.fillStyle="#94a3b8";
-        roundRect(-size*.24,-size*.08,size*.38,size*.20,size*.05);
-        ctx.fill();
-
-        ctx.strokeStyle="#f43f5e";
-        ctx.lineWidth=Math.max(2,size*.045);
-        ctx.beginPath();
-        ctx.moveTo(-size*.30,size*.12);
-        ctx.lineTo(size*.12,size*.12);
-        ctx.stroke();
-
-        // Impact streaks make the fist feel powerful in flight.
-        ctx.globalAlpha=.7;
-        ctx.strokeStyle="#fb7185";
-        ctx.lineWidth=Math.max(2,size*.035);
-        for(let i=0;i<3;i++){
-            ctx.beginPath();
-            ctx.moveTo(-size*(.55+i*.12),-size*(.18-i*.10));
-            ctx.lineTo(-size*(.92+i*.12),-size*(.18-i*.10));
-            ctx.stroke();
-        }
-        ctx.globalAlpha=1;
-    }
-
-
-    if(type==="rock"){
-
-        ctx.fillStyle="#64748b";
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            -size*.4,
-            -size*.1
-        );
-
-        ctx.lineTo(
-            -size*.18,
-            -size*.42
-        );
-
-        ctx.lineTo(
-            size*.28,
-            -size*.32
-        );
-
-        ctx.lineTo(
-            size*.42,
-            size*.12
-        );
-
-        ctx.lineTo(
-            size*.08,
-            size*.42
-        );
-
-        ctx.lineTo(
-            -size*.35,
-            size*.3
-        );
-
-        ctx.closePath();
-
-        ctx.fill();
-
-        ctx.fillStyle="rgba(255,255,255,.16)";
-
-        ctx.fillRect(
-            -size*.18,
-            -size*.22,
-            size*.22,
-            size*.08
-        );
-
-    }
-
-
-    if(type==="sword"){
-
-        /*
-           Blade
-        */
-
-        ctx.fillStyle="#e2e8f0";
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            -size*.12,
-            -size*.52
-        );
-
-        ctx.lineTo(
-            size*.12,
-            -size*.52
-        );
-
-        ctx.lineTo(
-            size*.08,
-            size*.25
-        );
-
-        ctx.lineTo(
-            0,
-            size*.52
-        );
-
-        ctx.lineTo(
-            -size*.08,
-            size*.25
-        );
-
-        ctx.closePath();
-
-        ctx.fill();
-
-
-        /*
-           Guard
-        */
-
-        ctx.fillStyle="#f59e0b";
-
-        ctx.fillRect(
-            -size*.38,
-            size*.18,
-            size*.76,
-            size*.12
-        );
-
-
-        /*
-           Handle
-        */
-
-        ctx.fillStyle="#78350f";
-
-        ctx.fillRect(
-            -size*.07,
-            size*.28,
-            size*.14,
-            size*.32
-        );
-
-    }
-
-
-    if(type==="axe"){
-
-        ctx.fillStyle="#78350f";
-
-        roundRect(
-            -size*.07,
-            -size*.48,
-            size*.14,
-            size*.96,
-            4
-        );
-
-        ctx.fill();
-
-
-        ctx.fillStyle="#dc2626";
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            -size*.05,
-            -size*.4
-        );
-
-        ctx.quadraticCurveTo(
-            size*.52,
-            -size*.45,
-            size*.42,
-            0
-        );
-
-        ctx.quadraticCurveTo(
-            size*.18,
-            size*.2,
-            -size*.05,
-            size*.05
-        );
-
-        ctx.closePath();
-
-        ctx.fill();
-
-    }
-
-
-    ctx.restore();
-
-}
-
-
-/* =========================================================
-   PROJECTILES
-========================================================= */
-
-function drawProjectiles(){
-
-    if(!flyingProjectile) return;
-
-    const p=
-        flyingProjectile;
-
-    p.progress+=p.speed;
-
-    p.rotation+=.35;
-
-    const x=
-        p.startX+
-        (
-            p.targetX-
-            p.startX
-        )*
-        p.progress;
-
-    const arc=
-        Math.sin(
-            p.progress*Math.PI
-        )*
-        220;
-
-    const y=
-        p.startY-
-        arc;
-
-
-    /*
-       Trail
-    */
-
-    for(let i=0;i<7;i++){
-
-        const trailProgress=
-            Math.max(
-                0,
-                p.progress-i*.012
-            );
-
-        const tx=
-            p.startX+
-            (
-                p.targetX-
-                p.startX
-            )*
-            trailProgress;
-
-        const ty=
-            p.startY-
-            Math.sin(
-                trailProgress*Math.PI
-            )*
-            270;
-
-        ctx.globalAlpha=
-            (.15-i*.018);
-
-        drawWeapon(
-            p.type,
-            tx,
-            ty,
-            (p.type==="fist" ? 42 : 28)-i*2,
-            p.rotation
-        );
-
-    }
-
-    ctx.globalAlpha=1;
-
-    drawWeapon(
-        p.type,
-        x,
-        y,
-        (p.type==="fist" ? 72 : 48),
-        p.rotation
-    );
-
-
-    if(p.progress>=1){
-
-        const finished=
-            flyingProjectile;
-
-        flyingProjectile=null;
-
-        handleHit(
-            finished
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   IMPACT
-========================================================= */
-
-function createImpact(
-    x,
-    y,
-    type
-){
-
-    effects.push({
-
-        type:"impact",
-
-        x,
-        y,
-
-        radius:15,
-
-        maxRadius:
-            type==="axe"
-            ? 120
-            : 90,
-
-        alpha:1,
-
-        life:25,
-
-        weapon:type
-
-    });
-
-
-    for(let i=0;i<32;i++){
-
-        const angle=
-            Math.random()*
-            Math.PI*2;
-
-        const speed=
-            2+
-            Math.random()*8;
-
-        particles.push({
-
-            x,
-            y,
-
-            vx:
-                Math.cos(angle)*
-                speed,
-
-            vy:
-                Math.sin(angle)*
-                speed-
-
-                3,
-
-            radius:
-                Math.random()*4+1,
-
-            color:
-                type==="sword"
-                ? "#bfdbfe"
-                : type==="axe"
-                ? "#ef4444"
-                : "#fbbf24",
-
-            alpha:1,
-
-            decay:.035
-
-        });
-
-    }
-
-}
-
-
-/* =========================================================
-   EFFECTS
-========================================================= */
-
-function drawEffects(){
-
-    for(
-        let i=effects.length-1;
-        i>=0;
-        i--
-    ){
-
-        const e=effects[i];
-
-        e.life--;
-
-        e.radius+=
-            (
-                e.maxRadius-
-                e.radius
-            )*.16;
-
-        e.alpha=
-            e.life/25;
-
-        if(e.type==="impact"){
-
-            ctx.save();
-
-            ctx.globalAlpha=
-                e.alpha*.65;
-
-            ctx.strokeStyle=
-                e.weapon==="sword"
-                ? "#bfdbfe"
-                : e.weapon==="fist"
-                ? "#fb7185"
-                : e.weapon==="axe"
-                ? "#ef4444"
-                : "#fbbf24";
-
-            ctx.lineWidth=5;
-
-            ctx.beginPath();
-
-            ctx.arc(
-                e.x,
-                e.y,
-                e.radius,
-                0,
-                Math.PI*2
-            );
-
-            ctx.stroke();
-
-            ctx.restore();
-
-        }
-
-        if(e.life<=0){
-
-            effects.splice(i,1);
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   PARTICLES
-========================================================= */
-
-function drawParticles(){
-
-    for(
-        let i=particles.length-1;
-        i>=0;
-        i--
-    ){
-
-        const p=particles[i];
-
-        p.x+=p.vx;
-
-        p.y+=p.vy;
-
-        p.vy+=.18;
-
-        p.alpha-=p.decay;
-
-        if(p.alpha<=0){
-
-            particles.splice(i,1);
-
-            continue;
-
-        }
-
-        ctx.save();
-
-        ctx.globalAlpha=p.alpha;
-
-        ctx.fillStyle=p.color;
-
-        ctx.beginPath();
-
-        ctx.arc(
-            p.x,
-            p.y,
-            p.radius,
-            0,
-            Math.PI*2
-        );
-
-        ctx.fill();
-
-        ctx.restore();
-
-    }
-
-}
-
-
-/* =========================================================
-   POPUPS
-========================================================= */
-
-function drawPopups(){
-
-    players.forEach(player=>{
-
-        for(
-            let i=
-                player.hitPopups.length-1;
-            i>=0;
-            i--
-        ){
-
-            const pop=
-                player.hitPopups[i];
-
-            pop.yOffset-=1.25;
-
-            pop.alpha-=.018;
-
-            ctx.save();
-
-            ctx.textAlign="center";
-
-            ctx.font=
-                "800 22px Cinzel";
-
-            ctx.globalAlpha=
-                Math.max(
-                    0,
-                    pop.alpha
-                );
-
-            ctx.fillStyle=
-                pop.text.includes("ՀԵՏ") || pop.text.includes("BACKLASH")
-                ? "#f87171"
-                : pop.text.includes("SUPER")
-                ? "#60a5fa"
-                : "#fca5a5";
-
-            ctx.shadowBlur=10;
-
-            ctx.shadowColor=
-                ctx.fillStyle;
-
-            ctx.fillText(
-                pop.text,
-                getCharacterX(player),
-                335+
-                pop.yOffset
-            );
-
-            ctx.restore();
-
-            if(pop.alpha<=0){
-
-                player.hitPopups.splice(
-                    i,
-                    1
-                );
-
-            }
-
-        }
-
-    });
-
-}
-
-
-/* =========================================================
-   LIGHTNING DRAW
-========================================================= */
-
-function drawLightning(){
-
-    for(
-        let i=
-            lightningBolts.length-1;
-        i>=0;
-        i--
-    ){
-
-        const bolt=
-            lightningBolts[i];
-
-        bolt.life--;
-
-        bolt.alpha=
-            bolt.life/28;
-
-        ctx.save();
-
-        ctx.globalAlpha=
-            bolt.alpha;
-
-        ctx.lineCap="round";
-
-        ctx.lineJoin="round";
-
-        /*
-           Glow
-        */
-
-        ctx.strokeStyle="#60a5fa";
-
-        ctx.lineWidth=14;
-
-        ctx.shadowBlur=30;
-
-        ctx.shadowColor="#3b82f6";
-
-        ctx.beginPath();
-
-        bolt.segments.forEach(
-            (point,index)=>{
-
-                if(index===0){
-
-                    ctx.moveTo(
-                        point.x,
-                        point.y
-                    );
-
-                }else{
-
-                    ctx.lineTo(
-                        point.x,
-                        point.y
-                    );
-
-                }
-
-            }
-        );
-
-        ctx.stroke();
-
-
-        /*
-           White core
-        */
-
-        ctx.shadowBlur=0;
-
-        ctx.strokeStyle="#ffffff";
-
-        ctx.lineWidth=4;
-
-        ctx.stroke();
-
-        ctx.restore();
-
-
-        if(bolt.life<=0){
-
-            lightningBolts.splice(
-                i,
-                1
-            );
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   FLASH
-========================================================= */
-
-function drawFlash(){
-
-    if(flashEffectTimer<=0) return;
-
-    flashEffectTimer--;
-
-    ctx.save();
-
-    const alpha=
-        flashEffectTimer>10
-        ? .75
-        : .35;
-
-    ctx.fillStyle=
-        `rgba(255,255,255,${alpha})`;
-
-    ctx.fillRect(
-        0,
-        0,
-        battleWorldW,
-        700
-    );
-
-    ctx.restore();
-
-}
-
-
-/* =========================================================
-   ANIMATION UPDATE
-========================================================= */
 
 function updateAnimations(){
-
-    players.forEach(player=>{
-
-        player.squashX+=
-            (
-                1-
-                player.squashX
-            )*.12;
-
-        player.squashY+=
-            (
-                1-
-                player.squashY
-            )*.12;
-
-        player.attackAnim*=.86;
-
-    });
-
-
-    catapultAnim.releaseKick*=.84;
-
-    if(screenShake>0){
-
-        screenShake*=.82;
-
-        if(screenShake<.2){
-
-            screenShake=0;
-
+    if(flyingProjectile){
+        flyingProjectile.progress+=flyingProjectile.speed;
+        if(flyingProjectile.progress>=1){
+            const proj=flyingProjectile; flyingProjectile=null;
+            handleHit(proj);
         }
-
     }
-
 }
 
+function drawProjectiles(){
+    if(!flyingProjectile) return;
+    const p=flyingProjectile;
+    const x=p.startX+(p.targetX-p.startX)*p.progress;
+    const y=p.startY-Math.sin(p.progress*Math.PI)*130;
+    ctx.save(); ctx.translate(x,y); ctx.font="30px sans-serif"; ctx.textAlign="center";
+    ctx.fillText(p.type==="rock"?"🪨":p.type==="sword"?"⚔️":p.type==="axe"?"🪓":"👊",0,0);
+    ctx.restore();
+}
 
-/* =========================================================
-   PURCHASE EFFECT
-========================================================= */
+function drawEffects(){}
+function drawParticles(){
+    particles.forEach((pt,i)=>{
+        pt.x+=pt.vx; pt.y+=pt.vy; pt.alpha-=pt.decay;
+        ctx.save(); ctx.globalAlpha=Math.max(0,pt.alpha); ctx.fillStyle=pt.color;
+        ctx.beginPath(); ctx.arc(pt.x,pt.y,pt.radius,0,Math.PI*2); ctx.fill(); ctx.restore();
+    });
+    particles=particles.filter(p=>p.alpha>0);
+}
 
-function spawnPurchaseEffect(){
-
-    for(let i=0;i<18;i++){
-
-        particles.push({
-
-            x:960+
-                (Math.random()-.5)*180,
-
-            y:400+
-                (Math.random()-.5)*100,
-
-            vx:(Math.random()-.5)*4,
-
-            vy:-Math.random()*5,
-
-            radius:Math.random()*3+1,
-
-            color:"#fbbf24",
-
-            alpha:1,
-
-            decay:.025
-
+function drawPopups(){
+    players.forEach(p=>{
+        p.hitPopups.forEach(pop=>{
+            pop.alpha-=0.02; pop.yOffset-=0.8;
+            ctx.save(); ctx.globalAlpha=Math.max(0,pop.alpha); ctx.font=`900 ${pop.size}px Inter`; ctx.textAlign="center";
+            ctx.fillStyle=pop.kind==="overkill"?"#f87171":pop.kind==="shield"?"#60a5fa":pop.kind==="energy"?"#a78bfa":"#fbbf24";
+            ctx.fillText(pop.text,getCharacterX(p),430+pop.yOffset); ctx.restore();
         });
-
-    }
-
+        p.hitPopups=p.hitPopups.filter(pop=>pop.alpha>0);
+    });
 }
 
-
-/* =========================================================
-   MUZZLE EFFECT
-========================================================= */
-
-function spawnMuzzleEffect(
-    x,
-    y
-){
-
-    for(let i=0;i<12;i++){
-
-        particles.push({
-
-            x,
-            y,
-
-            vx:
-                (Math.random()-.5)*6,
-
-            vy:
-                -Math.random()*5,
-
-            radius:
-                Math.random()*3+1,
-
-            color:"#fbbf24",
-
-            alpha:1,
-
-            decay:.05
-
-        });
-
-    }
-
+function drawLightning(){
+    lightningBolts.forEach(bolt=>{
+        bolt.life--; bolt.alpha=bolt.life/28;
+        ctx.save(); ctx.globalAlpha=Math.max(0,bolt.alpha); ctx.strokeStyle="#60a5fa"; ctx.lineWidth=4; ctx.shadowBlur=15; ctx.shadowColor="#60a5fa";
+        ctx.beginPath(); bolt.segments.forEach((seg,i)=>{if(i===0)ctx.moveTo(seg.x,seg.y);else ctx.lineTo(seg.x,seg.y);}); ctx.stroke();
+        ctx.restore();
+    });
+    lightningBolts=lightningBolts.filter(b=>b.life>0);
 }
 
-
-/* =========================================================
-   ROUND RECT HELPER
-========================================================= */
-
-function roundRect(
-    x,
-    y,
-    w,
-    h,
-    r
-){
-
-    if(ctx.roundRect){
-
-        ctx.beginPath();
-
-        ctx.roundRect(
-            x,
-            y,
-            w,
-            h,
-            r
-        );
-
-    }else{
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            x+r,
-            y
-        );
-
-        ctx.lineTo(
-            x+w-r,
-            y
-        );
-
-        ctx.quadraticCurveTo(
-            x+w,
-            y,
-            x+w,
-            y+r
-        );
-
-        ctx.lineTo(
-            x+w,
-            y+h-r
-        );
-
-        ctx.quadraticCurveTo(
-            x+w,
-            y+h,
-            x+w-r,
-            y+h
-        );
-
-        ctx.lineTo(
-            x+r,
-            y+h
-        );
-
-        ctx.quadraticCurveTo(
-            x,
-            y+h,
-            x,
-            y+h-r
-        );
-
-        ctx.lineTo(
-            x,
-            y+r
-        );
-
-        ctx.quadraticCurveTo(
-            x,
-            y,
-            x+r,
-            y
-        );
-
-        ctx.closePath();
-
+function drawFlash(){
+    if(flashEffectTimer>0){
+        flashEffectTimer--;
+        ctx.save(); ctx.fillStyle=`rgba(255,255,255,${flashEffectTimer/20})`; ctx.fillRect(0,0,battleWorldW,battleWorldH); ctx.restore();
     }
-
 }
 
+function drawCastle(player,isHuman,time){
+    const x=player.castleX; const y=540;
+    ctx.save(); ctx.translate(x,y);
+    ctx.fillStyle=isHuman?"#334155":"#1f2937";
+    ctx.fillRect(-60,-150,120,150);
+    ctx.restore();
+}
 
-/* =========================================================
-   INITIALIZE
-========================================================= */
-
-window.addEventListener(
-    "load",
-    ()=>{
-
-        resizeCanvas();
-
-        renderLevelsUI();
-
-        updateHUD();
-
-        startGameLoop();
-
+function createImpact(x,y,type){
+    for(let i=0;i<15;i++){
+        particles.push({x,y,vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8,radius:2+Math.random()*3,color:"#fbbf24",alpha:1,decay:0.04});
     }
-);
-
+}
 </script>
-
 </body>
 </html>
-
-```
